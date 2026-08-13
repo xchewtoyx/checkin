@@ -1,9 +1,11 @@
 # Mood Check-in — MVP Scope and Requirements
 
-Refined from [issue #1](https://github.com/xchewtoyx/checkin/issues/1). That
-issue is the source proposal; this document is the scoped, testable MVP
-definition. Where the two disagree, this document wins for the MVP; deferred
-items return via the backlog in §7, not by silently re-expanding scope.
+The primary record of the MVP scope is
+[issue #1](https://github.com/xchewtoyx/checkin/issues/1); this document is a
+repo-local mirror of it, kept for offline reference. If the two drift, the
+issue wins. The original, fuller proposal is preserved in the issue's edit
+history. Deferred items return via the backlog in §7, not by silently
+re-expanding scope.
 
 ## 1. Problem definition
 
