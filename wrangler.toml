@@ -1,0 +1,12 @@
+name = "checkin"
+main = "src/index.ts"
+compatibility_date = "2024-08-13"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "checkin"
+database_id = "local-checkin-db"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["*/15 * * * *"]

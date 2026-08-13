@@ -32,12 +32,9 @@ This repo does **not** use GitHub milestones.
 
 ```bash
 bash scripts/ci-local.sh
-.venv/bin/uvicorn checkin.app:app --reload --host 0.0.0.0 --port 8000
+npm run dev
 ```
 
-## API
+## API (M0)
 
 - `GET /health` — liveness
-- `POST /checkins` — create a mood checkin (`mood` 1–5, optional `note`)
-- `GET /checkins` — list recent checkins
-- `GET /checkins/{id}` — fetch one checkin

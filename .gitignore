@@ -1,13 +1,15 @@
+node_modules/
+.wrangler/
+dist/
+.dev.vars
+.env
+
 # Local data
 data/
-.venv/
+
+# Python legacy (removed in M0)
 __pycache__/
 *.py[cod]
+.venv/
 .pytest_cache/
 .ruff_cache/
-*.egg-info/
-dist/
-build/
-
-# Environment
-.env
