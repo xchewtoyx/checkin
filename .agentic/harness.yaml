@@ -1,0 +1,29 @@
+schema_version: 1
+
+harness:
+  source: https://github.com/xchewtoyx/rgh-mms.git
+  version: v0.1.0
+  profile: generic
+
+capabilities:
+  - implementation
+  - testing
+  - code-review
+  - milestone-delivery
+  - research
+  - documentation
+
+local_instructions:
+  - local-policy.md
+
+delivery:
+  branch_pattern: "issue-{issue}-{slug}"
+  agent_may_merge: false
+  agent_may_force_push: false
+  release_on_milestone_complete: false
+
+ci:
+  local_command: "bash scripts/ci-local.sh"
+
+contracts:
+  enabled: false
