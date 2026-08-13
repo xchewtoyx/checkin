@@ -1,25 +1,17 @@
 # checkin
 
-A lightweight mood checkin service.
-
-Record moods on a 1–5 scale with optional notes. Data is stored locally in SQLite (`data/checkins.db`).
+A lightweight mood checkin service — Cloudflare Worker + D1 + Pushover.
 
 ## Quick start
 
 ```bash
-bash scripts/ci-local.sh
-.venv/bin/uvicorn checkin.app:app --reload --host 0.0.0.0 --port 8000
+npm ci
+npm run dev
 ```
 
-## Example
+## MVP scope
 
-```bash
-curl -s -X POST http://127.0.0.1:8000/checkins \
-  -H 'content-type: application/json' \
-  -d '{"mood": 4, "note": "productive morning"}'
-
-curl -s http://127.0.0.1:8000/checkins
-```
+Requirements live in [#1 Project MVP](https://github.com/xchewtoyx/checkin/issues/1). A mirror is in [`docs/mvp-scope.md`](docs/mvp-scope.md).
 
 ## Development
 

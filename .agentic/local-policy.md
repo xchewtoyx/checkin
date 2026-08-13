@@ -5,19 +5,20 @@ This file is **hand-maintained** and referenced from `.agentic/harness.yaml`.
 
 ## Architecture
 
-FastAPI service with SQLite persistence under `data/checkins.db`.
+Cloudflare Worker (TypeScript) with D1 persistence.
 
-- `src/checkin/app.py` — HTTP API (`/health`, `/checkins`)
-- `src/checkin/store.py` — SQLite store
-- `tests/` — API tests via FastAPI TestClient
+- `src/index.ts` — Worker entry (`/health`, scheduled handler stub for M1)
+- `migrations/` — D1 schema (checkin_prompt, checkin_response)
+- `test/` — Vitest worker tests
 
 ## Commands
 
 | Task | Command |
 |------|---------|
 | Local CI | `bash scripts/ci-local.sh` |
-| Dev server | `.venv/bin/uvicorn checkin.app:app --reload --host 0.0.0.0 --port 8000` |
-| Install | `python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'` |
+| Dev server | `npm run dev` |
+| Deploy | `npm run deploy` |
+| Install | `npm ci` |
 
 ## Issue tracking
 
