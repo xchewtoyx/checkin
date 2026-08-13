@@ -138,3 +138,32 @@ export async function expireStalePrompts(
     .run();
   return result.meta.changes ?? 0;
 }
+
+export async function listResponses(
+  db: D1Database,
+  from?: string,
+  to?: string,
+): Promise<ResponseRow[]> {
+  let query =
+    "SELECT id, prompt_id, feeling, intensity, observed_at, submitted_at FROM checkin_response";
+  const conditions: string[] = [];
+  const bindings: string[] = [];
+
+  if (from) {
+    conditions.push("observed_at >= ?");
+    bindings.push(from);
+  }
+  if (to) {
+    conditions.push("observed_at <= ?");
+    bindings.push(to);
+  }
+
+  if (conditions.length > 0) {
+    query += ` WHERE ${conditions.join(" AND ")}`;
+  }
+  query += " ORDER BY observed_at ASC";
+
+  const statement = db.prepare(query);
+  const result = await statement.bind(...bindings).all<ResponseRow>();
+  return result.results ?? [];
+}

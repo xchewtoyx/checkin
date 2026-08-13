@@ -1,13 +1,19 @@
 import { renderCheckinPage, renderRecordedPage } from "./checkin-page";
+import {
+  authorizeExport,
+  parseExportQuery,
+  serializeResponses,
+} from "./export";
 import { log } from "./logger";
 import { NoopNotifier, Notifier, PushoverNotifier } from "./notifier";
 import { recordResponse } from "./record-response";
 import { runScheduler, SchedulerEnv } from "./scheduler";
-import { getPromptByToken } from "./store";
+import { getPromptByToken, listResponses } from "./store";
 
 export interface Env extends SchedulerEnv {
   PUSHOVER_TOKEN?: string;
   PUSHOVER_USER?: string;
+  EXPORT_BEARER_TOKEN?: string;
 }
 
 function buildNotifier(env: Env): Notifier {
@@ -15,6 +21,28 @@ function buildNotifier(env: Env): Notifier {
     return new PushoverNotifier(env.PUSHOVER_TOKEN, env.PUSHOVER_USER);
   }
   return new NoopNotifier();
+}
+
+async function handleExportResponses(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") {
+    return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  if (!authorizeExport(request, env.EXPORT_BEARER_TOKEN)) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const query = parseExportQuery(url);
+  if ("error" in query) {
+    return new Response(query.error, { status: 400 });
+  }
+
+  const rows = await listResponses(env.DB, query.from, query.to);
+  log("info", "responses_exported", { count: rows.length });
+  return new Response(serializeResponses(rows), {
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
 }
 
 async function handleCheckinToken(
@@ -73,6 +101,10 @@ export default {
 
     if (url.pathname === "/health") {
       return Response.json({ status: "ok" });
+    }
+
+    if (url.pathname === "/api/responses") {
+      return handleExportResponses(request, env);
     }
 
     const tokenMatch = url.pathname.match(/^\/c\/([a-f0-9]+)$/);

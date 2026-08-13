@@ -35,10 +35,11 @@ bash scripts/ci-local.sh
 npm run dev
 ```
 
-## API (M1)
+## API (M2)
 
 - `GET /health` — liveness
 - `GET/POST /c/:token` — check-in page and submission
+- `GET /api/responses?from=&to=` — bearer-token JSON export
 - Cron (15 min) — scheduler, Pushover notification, expiry sweep
 
-Secrets (Worker): `PUSHOVER_TOKEN`, `PUSHOVER_USER`. Vars: `BASE_URL`, `SCHEDULE_WINDOWS`.
+Secrets (Worker): `PUSHOVER_TOKEN`, `PUSHOVER_USER`, `EXPORT_BEARER_TOKEN`. Vars: `BASE_URL`, `SCHEDULE_WINDOWS`.
