@@ -1,0 +1,76 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Run local CI
+        run: bash scripts/ci-local.sh
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Configure production D1 binding
+        run: |
+          if [ -z "${{ vars.CLOUDFLARE_D1_DATABASE_ID }}" ]; then
+            echo "CLOUDFLARE_D1_DATABASE_ID repository variable is required" >&2
+            exit 1
+          fi
+          sed -i "s/__CLOUDFLARE_D1_DATABASE_ID__/${{ vars.CLOUDFLARE_D1_DATABASE_ID }}/g" wrangler.toml
+      - name: Apply D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply checkin --remote --env production
+      - name: Sync Worker secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
+          EXPORT_BEARER_TOKEN: ${{ secrets.EXPORT_BEARER_TOKEN }}
+        run: |
+          for secret in PUSHOVER_TOKEN PUSHOVER_USER EXPORT_BEARER_TOKEN; do
+            if [ -z "${!secret}" ]; then
+              echo "$secret GitHub secret is required" >&2
+              exit 1
+            fi
+            printf '%s' "${!secret}" | npx wrangler secret put "$secret" --env production
+          done
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env production --var BASE_URL:${{ vars.BASE_URL }}
+      - name: Smoke test /health
+        run: |
+          if [ -z "${{ vars.BASE_URL }}" ]; then
+            echo "BASE_URL repository variable is required" >&2
+            exit 1
+          fi
+          curl --fail --retry 5 --retry-delay 3 "${{ vars.BASE_URL }}/health"
