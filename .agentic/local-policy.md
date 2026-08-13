@@ -7,7 +7,10 @@ This file is **hand-maintained** and referenced from `.agentic/harness.yaml`.
 
 Cloudflare Worker (TypeScript) with D1 persistence.
 
-- `src/index.ts` — Worker entry (`/health`, scheduled handler stub for M1)
+- `src/index.ts` — Worker entry (`/health`, `/c/:token`, `/api/responses`, scheduled loop)
+- `src/scheduler.ts` — idempotent Europe/London scheduler
+- `src/record-response.ts` — single write path for responses
+- `src/export.ts` — bearer-token JSON export
 - `migrations/` — D1 schema (checkin_prompt, checkin_response)
 - `test/` — Vitest worker tests
 

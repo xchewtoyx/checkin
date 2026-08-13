@@ -6,6 +6,11 @@ export default defineWorkersConfig({
     poolOptions: {
       workers: {
         wrangler: { configPath: "./wrangler.toml" },
+        miniflare: {
+          bindings: {
+            EXPORT_BEARER_TOKEN: "test-export-token",
+          },
+        },
       },
     },
   },
