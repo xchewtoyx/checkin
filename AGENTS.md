@@ -35,6 +35,8 @@ bash scripts/ci-local.sh
 npm run dev
 ```
 
+Deploy is automated on push to `main` — see [docs/deploy.md](docs/deploy.md) for required GitHub secrets and one-time setup.
+
 ## API (M2)
 
 - `GET /health` — liveness

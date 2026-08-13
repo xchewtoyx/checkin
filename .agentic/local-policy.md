@@ -18,6 +18,7 @@ Cloudflare Worker (TypeScript) with D1 persistence.
 
 | Task | Command |
 |------|---------|
+| Deploy | Automated on push to `main` — see [docs/deploy.md](../docs/deploy.md) |
 | Local CI | `bash scripts/ci-local.sh` |
 | Dev server | `npm run dev` |
 | Deploy | `npm run deploy` |
