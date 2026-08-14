@@ -1,0 +1,503 @@
+<title>Feelings Wheel Check-in</title>
+<style>
+  :root {
+    --ground: #faf9f7;
+    --surface: #ffffff;
+    --ink: #1f2328;
+    --muted: #6b6f76;
+    --line: #e4e1db;
+    --focus: #4a6fdc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #15171a;
+      --surface: #1d2025;
+      --ink: #e8eaed;
+      --muted: #9aa0a8;
+      --line: #2b2f36;
+      --focus: #7c96e8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #15171a;
+    --surface: #1d2025;
+    --ink: #e8eaed;
+    --muted: #9aa0a8;
+    --line: #2b2f36;
+    --focus: #7c96e8;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 26rem;
+    margin: 0 auto;
+    padding: 1.1rem 1.1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+  h1 {
+    font-size: 1.55rem;
+    font-weight: 800;
+    margin: 0.1rem 0 0;
+    text-wrap: balance;
+  }
+
+  /* ---- wheel ---- */
+  .wheel-wrap { display: flex; justify-content: center; }
+  svg.wheel { width: min(232px, 66vw); height: auto; touch-action: manipulation; }
+  .wedge path {
+    cursor: pointer;
+    transition: opacity 120ms ease;
+  }
+  .wedge text {
+    font-size: 11px;
+    font-weight: 700;
+    pointer-events: none;
+    text-transform: lowercase;
+  }
+  .wheel-center {
+    cursor: pointer;
+  }
+  .wheel-center text {
+    font-size: 10px;
+    font-weight: 700;
+    fill: var(--muted);
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wedge path { transition: none; }
+  }
+
+  /* ---- chips ---- */
+  .group-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.45rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .group-label .back {
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .chip {
+    --h: #888888;
+    appearance: none;
+    border: 1px solid color-mix(in oklab, var(--h) 38%, var(--line));
+    background: color-mix(in oklab, var(--h) 11%, var(--surface));
+    color: color-mix(in oklab, var(--h) 52%, var(--ink));
+    border-radius: 999px;
+    padding: 0.55rem 0.85rem;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .chip.finer { font-weight: 500; font-size: 0.88rem; }
+  .chip[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--h) 26%, var(--surface));
+    border-color: var(--h);
+    box-shadow: inset 0 0 0 1.5px var(--h);
+    color: color-mix(in oklab, var(--h) 62%, var(--ink));
+    font-weight: 800;
+  }
+
+  .note input {
+    width: 100%;
+    font: inherit;
+    font-size: 1rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 44px;
+  }
+  .note input::placeholder { color: var(--muted); }
+
+  /* ---- intensity ---- */
+  .intensity-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.45rem; }
+  .intensity-head .hint { color: var(--muted); font-size: 0.82rem; }
+  .intensity {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.4rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .intensity button {
+    appearance: none;
+    font: inherit;
+    font-weight: 700;
+    min-height: 44px;
+    border-radius: 0.6rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .intensity.active button {
+    color: color-mix(in oklab, var(--h) 55%, var(--ink));
+    border-color: color-mix(in oklab, var(--h) 40%, var(--line));
+    background: color-mix(in oklab, var(--h) calc(4% + var(--i) * 5.5%), var(--surface));
+  }
+  .intensity:not(.active) button { cursor: not-allowed; }
+
+  /* ---- recorded ---- */
+  .recorded {
+    display: none;
+    flex-direction: column;
+    gap: 0.9rem;
+    align-items: flex-start;
+    border: 1px solid color-mix(in oklab, var(--h, #888) 40%, var(--line));
+    background: color-mix(in oklab, var(--h, #888) 8%, var(--surface));
+    border-radius: 1rem;
+    padding: 1.1rem;
+  }
+  .recorded.open { display: flex; }
+  .recorded .word {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: color-mix(in oklab, var(--h) 60%, var(--ink));
+  }
+  .recorded .meta { color: var(--muted); font-size: 0.92rem; margin: 0; }
+  .recorded .change {
+    appearance: none;
+    font: inherit;
+    font-weight: 700;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0.5rem 1rem;
+    min-height: 44px;
+    cursor: pointer;
+  }
+
+  .footnote {
+    color: var(--muted);
+    font-size: 0.78rem;
+    border-top: 1px solid var(--line);
+    padding-top: 0.8rem;
+    margin: 0.6rem 0 0;
+  }
+
+  :is(button, input):focus-visible, .wedge path:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .hidden { display: none !important; }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">check-in · thursday afternoon</p>
+    <h1>How are you?</h1>
+  </header>
+
+  <div class="wheel-wrap" id="form-wheel">
+    <svg class="wheel" viewBox="-106 -106 212 212" role="group" aria-label="Feelings wheel: tap a mood family to see more words"></svg>
+  </div>
+
+  <section id="chip-area">
+    <p class="group-label" id="chip-label"></p>
+    <div class="chips" id="chips" role="group" aria-label="Feelings"></div>
+  </section>
+
+  <section class="note" id="form-note">
+    <input id="note-input" type="text" maxlength="200" placeholder="Add a note (optional)" aria-label="Optional note">
+  </section>
+
+  <section id="form-intensity">
+    <div class="intensity-head">
+      <p class="eyebrow" style="margin:0">intensity</p>
+      <span class="hint" id="intensity-hint">pick a feeling first</span>
+    </div>
+    <div class="intensity" id="intensity" role="group" aria-label="Intensity from 1 to 10"></div>
+  </section>
+
+  <section class="recorded" id="recorded">
+    <span class="word" id="recorded-word"></span>
+    <p class="meta" id="recorded-meta"></p>
+    <button class="change" id="recorded-change" type="button">Change answer</button>
+  </section>
+
+  <p class="footnote">Interactive mockup for
+    <a href="https://github.com/xchewtoyx/checkin/issues/12" style="color:inherit">checkin&nbsp;#12</a>.
+    Word list is a placeholder approximation — transcribe the real wheel before shipping.
+    Nothing is saved.</p>
+</main>
+
+<script>
+  const WHEEL = [
+    { core: "peaceful", hue: "#2ba193", feelings: [
+      ["calm", ["serene", "tranquil"]],
+      ["content", ["satisfied", "comfortable"]],
+      ["relaxed", ["mellow", "at ease"]],
+      ["thoughtful", ["reflective", "pensive"]],
+      ["loving", ["warm", "affectionate"]],
+      ["trusting", ["secure", "open"]],
+    ]},
+    { core: "joyful", hue: "#d9a514", feelings: [
+      ["happy", ["delighted", "cheerful"]],
+      ["excited", ["eager", "enthusiastic"]],
+      ["playful", ["amused", "lighthearted"]],
+      ["energetic", ["lively", "refreshed"]],
+      ["optimistic", ["hopeful", "inspired"]],
+      ["grateful", ["thankful", "appreciative"]],
+    ]},
+    { core: "powerful", hue: "#4f9d55", feelings: [
+      ["confident", ["self-assured", "capable"]],
+      ["proud", ["accomplished", "fulfilled"]],
+      ["courageous", ["brave", "determined"]],
+      ["valued", ["appreciated", "respected"]],
+      ["creative", ["motivated", "focused"]],
+      ["successful", ["effective", "in control"]],
+    ]},
+    { core: "mad", hue: "#d64550", feelings: [
+      ["irritable", ["annoyed", "impatient"]],
+      ["angry", ["furious", "seething"]],
+      ["frustrated", ["exasperated", "blocked"]],
+      ["hurt", ["wounded", "let down"]],
+      ["resentful", ["bitter", "jealous"]],
+      ["critical", ["cynical", "dismissive"]],
+    ]},
+    { core: "scared", hue: "#e8871e", feelings: [
+      ["anxious", ["worried", "uneasy"]],
+      ["stressed", ["overwhelmed", "pressured"]],
+      ["insecure", ["inadequate", "self-doubting"]],
+      ["confused", ["bewildered", "lost"]],
+      ["helpless", ["stuck", "powerless"]],
+      ["rejected", ["excluded", "unwanted"]],
+    ]},
+    { core: "sad", hue: "#4a6fdc", feelings: [
+      ["low", ["down", "gloomy"]],
+      ["lonely", ["isolated", "left out"]],
+      ["tired", ["drained", "weary"]],
+      ["bored", ["indifferent", "flat"]],
+      ["guilty", ["remorseful", "regretful"]],
+      ["ashamed", ["embarrassed", "deflated"]],
+    ]},
+  ];
+
+  // word -> {sector, hue, finer?}  (includes cores, middle and outer ring)
+  const INDEX = new Map();
+  for (const s of WHEEL) {
+    INDEX.set(s.core, { sector: s.core, hue: s.hue });
+    for (const [word, finer] of s.feelings) {
+      INDEX.set(word, { sector: s.core, hue: s.hue });
+      for (const f of finer) INDEX.set(f, { sector: s.core, hue: s.hue });
+    }
+  }
+
+  // Two middle-ring words from each sector, in wheel order. The mockup
+  // reshuffles per load; the real page seeds this from the prompt token so
+  // a reload never changes the options mid-decision.
+  const GRID = WHEEL.flatMap((s) => {
+    const words = s.feelings.flatMap(([word, finer]) => [word, ...finer]);
+    const a = Math.floor(Math.random() * words.length);
+    let b = Math.floor(Math.random() * (words.length - 1));
+    if (b >= a) b += 1;
+    return [words[a], words[b]];
+  });
+
+  const state = { view: null, feeling: null, intensity: null };
+
+  const chipLabel = document.getElementById("chip-label");
+  const chipsEl = document.getElementById("chips");
+  const intensityEl = document.getElementById("intensity");
+  const intensityHint = document.getElementById("intensity-hint");
+  const svg = document.querySelector("svg.wheel");
+
+  // ---- wheel geometry (generated, not hand-authored) ----
+  const NS = "http://www.w3.org/2000/svg";
+  function polar(r, deg) {
+    const rad = (deg - 90) * Math.PI / 180;
+    return [r * Math.cos(rad), r * Math.sin(rad)];
+  }
+  function wedgePath(a0, a1, rOuter, rInner) {
+    const [x0, y0] = polar(rOuter, a0), [x1, y1] = polar(rOuter, a1);
+    const [x2, y2] = polar(rInner, a1), [x3, y3] = polar(rInner, a0);
+    return `M ${x0} ${y0} A ${rOuter} ${rOuter} 0 0 1 ${x1} ${y1}` +
+           ` L ${x2} ${y2} A ${rInner} ${rInner} 0 0 0 ${x3} ${y3} Z`;
+  }
+  function drawWheel() {
+    svg.innerHTML = "";
+    const per = 360 / WHEEL.length;
+    WHEEL.forEach((s, i) => {
+      const a0 = i * per, a1 = (i + 1) * per;
+      const g = document.createElementNS(NS, "g");
+      g.setAttribute("class", "wedge");
+      const path = document.createElementNS(NS, "path");
+      path.setAttribute("d", wedgePath(a0 + 1, a1 - 1, 100, 44));
+      const active = state.view === s.core ||
+        (state.feeling && INDEX.get(state.feeling).sector === s.core);
+      path.setAttribute("fill", active
+        ? `color-mix(in oklab, ${s.hue} 58%, var(--surface))`
+        : `color-mix(in oklab, ${s.hue} 26%, var(--surface))`);
+      path.setAttribute("stroke", active ? "var(--ink)" : "none");
+      path.setAttribute("stroke-width", "1.5");
+      path.setAttribute("tabindex", "0");
+      path.setAttribute("role", "button");
+      path.setAttribute("aria-label", `${s.core}: show ${s.core} words`);
+      const open = () => { state.view = state.view === s.core ? null : s.core; render(); };
+      path.addEventListener("click", open);
+      path.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+      });
+      const label = document.createElementNS(NS, "text");
+      const [lx, ly] = polar(73, (a0 + a1) / 2);
+      label.setAttribute("x", lx); label.setAttribute("y", ly + 3);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("fill", `color-mix(in oklab, ${s.hue} 72%, var(--ink))`);
+      label.textContent = s.core;
+      g.append(path, label);
+      svg.append(g);
+    });
+    const center = document.createElementNS(NS, "g");
+    center.setAttribute("class", "wheel-center");
+    const c = document.createElementNS(NS, "circle");
+    c.setAttribute("r", "38");
+    c.setAttribute("fill", "var(--surface)");
+    c.setAttribute("stroke", "var(--line)");
+    c.setAttribute("tabindex", "0");
+    c.setAttribute("role", "button");
+    c.setAttribute("aria-label", "Show the default feelings again");
+    c.addEventListener("click", () => { state.view = null; render(); });
+    c.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); state.view = null; render(); }
+    });
+    const t1 = document.createElementNS(NS, "text");
+    t1.setAttribute("text-anchor", "middle");
+    t1.setAttribute("y", state.view ? "4" : "-2");
+    t1.textContent = state.view ? "back" : "tap a";
+    const t2 = document.createElementNS(NS, "text");
+    t2.setAttribute("text-anchor", "middle");
+    t2.setAttribute("y", "10");
+    t2.textContent = state.view ? "" : "family";
+    center.append(c, t1, t2);
+    svg.append(center);
+  }
+
+  // ---- chips ----
+  function chip(word, { finer = false } = {}) {
+    const info = INDEX.get(word);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip" + (finer ? " finer" : "");
+    b.style.setProperty("--h", info.hue);
+    b.textContent = word;
+    b.setAttribute("aria-pressed", String(state.feeling === word));
+    b.addEventListener("click", () => {
+      state.feeling = state.feeling === word ? null : word;
+      render();
+    });
+    return b;
+  }
+  function renderChips() {
+    chipsEl.innerHTML = "";
+    chipLabel.innerHTML = "";
+    if (state.view) {
+      const sector = WHEEL.find((s) => s.core === state.view);
+      const back = document.createElement("button");
+      back.type = "button";
+      back.className = "back";
+      back.textContent = "‹ back";
+      back.addEventListener("click", () => { state.view = null; render(); });
+      const name = document.createElement("span");
+      name.textContent = `feeling ${sector.core} — more precisely…`;
+      name.style.color = `color-mix(in oklab, ${sector.hue} 65%, var(--ink))`;
+      chipLabel.append(back, name);
+      chipsEl.append(chip(sector.core));
+      for (const [word] of sector.feelings) chipsEl.append(chip(word));
+      for (const [, finer] of sector.feelings)
+        for (const f of finer) chipsEl.append(chip(f, { finer: true }));
+    } else {
+      chipLabel.textContent = "two from each family — pick what resonates";
+      for (const w of GRID) chipsEl.append(chip(w));
+      if (state.feeling && !GRID.includes(state.feeling))
+        chipsEl.append(chip(state.feeling));
+    }
+  }
+
+  // ---- intensity ----
+  function renderIntensity() {
+    intensityEl.innerHTML = "";
+    const info = state.feeling ? INDEX.get(state.feeling) : null;
+    intensityEl.classList.toggle("active", Boolean(info));
+    if (info) intensityEl.style.setProperty("--h", info.hue);
+    intensityHint.textContent = info
+      ? `how strongly ${state.feeling}?`
+      : "pick a feeling first";
+    for (let i = 1; i <= 10; i++) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = String(i);
+      b.style.setProperty("--i", String(i));
+      b.disabled = !info;
+      b.addEventListener("click", () => submit(i));
+      intensityEl.append(b);
+    }
+  }
+
+  // ---- submit (mocked) ----
+  function submit(intensity) {
+    state.intensity = intensity;
+    const info = INDEX.get(state.feeling);
+    const note = document.getElementById("note-input").value.trim();
+    for (const id of ["form-wheel", "chip-area", "form-note", "form-intensity"])
+      document.getElementById(id).classList.add("hidden");
+    const rec = document.getElementById("recorded");
+    rec.style.setProperty("--h", info.hue);
+    document.getElementById("recorded-word").textContent = state.feeling;
+    document.getElementById("recorded-meta").textContent =
+      `Recorded · ${info.sector} · intensity ${intensity} of 10` + (note ? ` · “${note}”` : "");
+    rec.classList.add("open");
+  }
+  document.getElementById("recorded-change").addEventListener("click", () => {
+    state.intensity = null;
+    document.getElementById("recorded").classList.remove("open");
+    for (const id of ["form-wheel", "chip-area", "form-note", "form-intensity"])
+      document.getElementById(id).classList.remove("hidden");
+    render();
+  });
+
+  function render() {
+    drawWheel();
+    renderChips();
+    renderIntensity();
+  }
+  render();
+</script>
