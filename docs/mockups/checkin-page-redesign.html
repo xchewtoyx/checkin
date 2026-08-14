@@ -326,7 +326,7 @@
   // reshuffles per load; the real page seeds this from the prompt token so
   // a reload never changes the options mid-decision.
   const GRID = WHEEL.flatMap((s) => {
-    const words = s.feelings.map(([word]) => word);
+    const words = s.feelings.flatMap(([word, finer]) => [word, ...finer]);
     const a = Math.floor(Math.random() * words.length);
     let b = Math.floor(Math.random() * (words.length - 1));
     if (b >= a) b += 1;

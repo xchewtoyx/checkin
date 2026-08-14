@@ -4,19 +4,6 @@ export const PROMPT_DAY_END = "20:00";
 export const TOKEN_TTL_HOURS = 16;
 export const DEFAULT_WINDOWS = "09:00-11:00,13:00-15:00,17:00-19:00";
 
-export const FEELINGS = [
-  "good",
-  "calm",
-  "happy",
-  "low",
-  "anxious",
-  "stressed",
-  "irritable",
-  "tired",
-] as const;
-
-export type Feeling = (typeof FEELINGS)[number];
-
 export interface ScheduleWindow {
   index: number;
   startMinutes: number;

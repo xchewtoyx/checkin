@@ -98,7 +98,9 @@ existing `upsertResponse` upsert, so undo/edit is already free server-side).
 ### 3. Chip grid: 2 per sector, seeded per prompt
 
 Twelve chips: **two words drawn from each of the six sectors**, grouped in
-wheel order so the grid scans like the wheel. Balanced-by-construction
+wheel order so the grid scans like the wheel. The draw pool for each sector
+is its middle **and** outer ring together (~18 words), so precise vocabulary
+like "drained" or "inspired" surfaces unprompted alongside broader words. Balanced-by-construction
 sampling means every affect family is always represented — the spread never
 skews all-negative or all-positive, so it neither leads the answer nor
 biases the recorded data.
@@ -106,10 +108,9 @@ biases the recorded data.
 The draw is **deterministically seeded from the prompt token**: each prompt
 gets a fresh spread (variety across the day), but reloading the page never
 reshuffles the options mid-decision, and an expired-then-revisited link
-shows the same grid it originally did. Implementation is a small
-`seededSample(token)` — hash the token, use it to pick 2 of the ~6 middle
-ring words per sector (whether outer-ring words join the draw pool is an
-open question, §"Open questions").
+shows the same grid it originally did. Implemented as
+`sampleFeelings(token)` in `src/feelings-wheel.ts` — FNV-1a hash of the
+token seeding a small PRNG that picks 2 of each sector's pooled words.
 
 Chips are tinted with their sector hue (soft fill + colored text on the
 neutral ground; solid fill when selected). Color is reinforcement, not the
@@ -129,10 +130,10 @@ only signal — the word is always printed.
 
 ## Implementation plan
 
-| Phase | Scope | Touches |
-|---|---|---|
-| **M1** | Wheel dataset, token-seeded 2-per-sector chip grid, intensity tinting, selected/changeable state, styled expired page | `feelings-wheel.ts` (new), `checkin-page.ts`, `config.ts` |
-| **M2** | Tappable SVG wheel drill-down | `checkin-page.ts` |
+| Phase | Scope | Touches | Status |
+|---|---|---|---|
+| **M1** | Wheel dataset, token-seeded 2-per-sector chip grid, intensity tinting, selected/changeable state, styled expired page | `feelings-wheel.ts` (new), `checkin-page.ts`, `config.ts` | **Done** |
+| **M2** | Tappable SVG wheel drill-down | `checkin-page.ts` | Proposed |
 
 `renderCheckinPage(prompt, now)` keeps its signature — the seed comes from
 `prompt.response_token`, which it already has. No new queries, no schema
@@ -143,10 +144,6 @@ changes; existing tests keep passing.
 1. **Which wheel exactly?** The attachment in #12 needs transcribing —
    Willcox (6 cores) and the Roberts emotion wheel (7 cores) differ. The
    design is agnostic; only the data file changes.
-2. **Draw pool:** sample the 12 chips from the middle ring only (outer ring
-   reachable via drill-down), or let outer-ring words appear in the grid
-   too? Middle-only keeps the grid's abstraction level even; including
-   outer words surfaces more precise vocabulary unprompted.
-3. Should the note ever move to its own column so recorded feelings stay
+2. Should the note ever move to its own column so recorded feelings stay
    clean wheel words? (The `feeling: note` concatenation makes
    sector-level analysis of exports slightly fiddlier.)
