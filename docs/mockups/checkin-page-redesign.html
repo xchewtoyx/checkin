@@ -39,10 +39,10 @@
   main {
     max-width: 26rem;
     margin: 0 auto;
-    padding: 1.25rem 1.1rem 3rem;
+    padding: 1.1rem 1.1rem 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
+    gap: 0.9rem;
   }
 
   .eyebrow {
@@ -53,7 +53,7 @@
     margin: 0;
   }
   h1 {
-    font-size: 1.7rem;
+    font-size: 1.55rem;
     font-weight: 800;
     margin: 0.1rem 0 0;
     text-wrap: balance;
@@ -61,7 +61,7 @@
 
   /* ---- wheel ---- */
   .wheel-wrap { display: flex; justify-content: center; }
-  svg.wheel { width: min(272px, 76vw); height: auto; touch-action: manipulation; }
+  svg.wheel { width: min(232px, 66vw); height: auto; touch-action: manipulation; }
   .wedge path {
     cursor: pointer;
     transition: opacity 120ms ease;
@@ -110,7 +110,7 @@
   .chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: 0.4rem;
   }
   .chip {
     --h: #888888;
@@ -135,9 +135,7 @@
     font-weight: 800;
   }
 
-  /* ---- search ---- */
-  .search { position: relative; }
-  .search input, .note input {
+  .note input {
     width: 100%;
     font: inherit;
     font-size: 1rem;
@@ -148,50 +146,7 @@
     color: var(--ink);
     min-height: 44px;
   }
-  .search input::placeholder, .note input::placeholder { color: var(--muted); }
-  .suggestions {
-    position: absolute;
-    z-index: 5;
-    inset-inline: 0;
-    top: calc(100% + 4px);
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 0.7rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-    max-height: 230px;
-    overflow-y: auto;
-    padding: 0.25rem;
-    display: none;
-  }
-  .suggestions.open { display: block; }
-  .suggestions button {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    width: 100%;
-    border: 0;
-    background: none;
-    font: inherit;
-    color: var(--ink);
-    padding: 0.55rem 0.6rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    text-align: left;
-  }
-  .suggestions button:hover, .suggestions button:focus-visible {
-    background: color-mix(in oklab, var(--ink) 7%, var(--surface));
-  }
-  .suggestions .dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    flex: none;
-  }
-  .suggestions .sector-name {
-    margin-left: auto;
-    color: var(--muted);
-    font-size: 0.8rem;
-  }
-  .suggestions .empty { color: var(--muted); padding: 0.55rem 0.6rem; }
+  .note input::placeholder { color: var(--muted); }
 
   /* ---- intensity ---- */
   .intensity-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.45rem; }
@@ -281,12 +236,6 @@
     <div class="chips" id="chips" role="group" aria-label="Feelings"></div>
   </section>
 
-  <section class="search" id="form-search">
-    <input id="search-input" type="text" autocomplete="off" spellcheck="false"
-      placeholder="Search the wheel… (e.g. hopeful)" aria-label="Search feelings">
-    <div class="suggestions" id="suggestions"></div>
-  </section>
-
   <section class="note" id="form-note">
     <input id="note-input" type="text" maxlength="200" placeholder="Add a note (optional)" aria-label="Optional note">
   </section>
@@ -373,10 +322,16 @@
     }
   }
 
-  // Mocked personalization: in the real page these come from D1 (last 30 days)
-  // and a token-seeded stratified sample of the wheel.
-  const TOP_FOUR = ["calm", "tired", "anxious", "content"];
-  const SAMPLED = ["happy", "proud", "trusting", "lonely", "stressed", "frustrated", "hopeful", "confident"];
+  // Two middle-ring words from each sector, in wheel order. The mockup
+  // reshuffles per load; the real page seeds this from the prompt token so
+  // a reload never changes the options mid-decision.
+  const GRID = WHEEL.flatMap((s) => {
+    const words = s.feelings.map(([word]) => word);
+    const a = Math.floor(Math.random() * words.length);
+    let b = Math.floor(Math.random() * (words.length - 1));
+    if (b >= a) b += 1;
+    return [words[a], words[b]];
+  });
 
   const state = { view: null, feeling: null, intensity: null };
 
@@ -384,8 +339,6 @@
   const chipsEl = document.getElementById("chips");
   const intensityEl = document.getElementById("intensity");
   const intensityHint = document.getElementById("intensity-hint");
-  const searchInput = document.getElementById("search-input");
-  const suggestionsEl = document.getElementById("suggestions");
   const svg = document.querySelector("svg.wheel");
 
   // ---- wheel geometry (generated, not hand-authored) ----
@@ -492,51 +445,12 @@
       for (const [, finer] of sector.feelings)
         for (const f of finer) chipsEl.append(chip(f, { finer: true }));
     } else {
-      chipLabel.textContent = "frequent for you · plus a sample of the wheel";
-      for (const w of TOP_FOUR) chipsEl.append(chip(w));
-      for (const w of SAMPLED) chipsEl.append(chip(w));
+      chipLabel.textContent = "two from each family — pick what resonates";
+      for (const w of GRID) chipsEl.append(chip(w));
+      if (state.feeling && !GRID.includes(state.feeling))
+        chipsEl.append(chip(state.feeling));
     }
   }
-
-  // ---- search / autocomplete ----
-  function renderSuggestions() {
-    const q = searchInput.value.trim().toLowerCase();
-    suggestionsEl.innerHTML = "";
-    if (!q) { suggestionsEl.classList.remove("open"); return; }
-    const matches = [...INDEX.keys()].filter((w) => w.includes(q)).slice(0, 8);
-    if (matches.length === 0) {
-      const d = document.createElement("div");
-      d.className = "empty";
-      d.textContent = "No wheel word matches — try the wheel above.";
-      suggestionsEl.append(d);
-    }
-    for (const word of matches) {
-      const info = INDEX.get(word);
-      const b = document.createElement("button");
-      b.type = "button";
-      const dot = document.createElement("span");
-      dot.className = "dot";
-      dot.style.background = info.hue;
-      const name = document.createElement("span");
-      name.textContent = word;
-      const sec = document.createElement("span");
-      sec.className = "sector-name";
-      sec.textContent = info.sector;
-      b.append(dot, name, sec);
-      b.addEventListener("click", () => {
-        state.feeling = word;
-        state.view = info.sector;
-        searchInput.value = "";
-        render();
-      });
-      suggestionsEl.append(b);
-    }
-    suggestionsEl.classList.add("open");
-  }
-  searchInput.addEventListener("input", renderSuggestions);
-  searchInput.addEventListener("blur", () => {
-    setTimeout(() => suggestionsEl.classList.remove("open"), 150);
-  });
 
   // ---- intensity ----
   function renderIntensity() {
@@ -563,7 +477,7 @@
     state.intensity = intensity;
     const info = INDEX.get(state.feeling);
     const note = document.getElementById("note-input").value.trim();
-    for (const id of ["form-wheel", "chip-area", "form-search", "form-note", "form-intensity"])
+    for (const id of ["form-wheel", "chip-area", "form-note", "form-intensity"])
       document.getElementById(id).classList.add("hidden");
     const rec = document.getElementById("recorded");
     rec.style.setProperty("--h", info.hue);
@@ -575,7 +489,7 @@
   document.getElementById("recorded-change").addEventListener("click", () => {
     state.intensity = null;
     document.getElementById("recorded").classList.remove("open");
-    for (const id of ["form-wheel", "chip-area", "form-search", "form-note", "form-intensity"])
+    for (const id of ["form-wheel", "chip-area", "form-note", "form-intensity"])
       document.getElementById(id).classList.remove("hidden");
     render();
   });
