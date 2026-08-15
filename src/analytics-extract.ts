@@ -6,9 +6,11 @@ import {
   listAllResponsesForExport,
 } from "./store";
 
-/** Daily export slot in UTC — one run per calendar day (D4). */
-export const EXPORT_SLOT_HOUR_UTC = 3;
-export const EXPORT_SLOT_MINUTE_UTC = 0;
+/** Daily export slots in UTC — two runs per calendar day, 12 hours apart (D4). */
+export const EXPORT_SLOTS_UTC = [
+  { hour: 3, minute: 0 },
+  { hour: 15, minute: 0 },
+] as const;
 
 /** Cron interval — export window matches the scheduled handler cadence. */
 export const EXPORT_SLOT_WINDOW_MINUTES = 15;
@@ -46,14 +48,18 @@ export function formatObjectTimestamp(date: Date): string {
   return `${hours}${minutes}${seconds}`;
 }
 
-export function getExportSlotForDay(now: Date): ExportSlot {
+export function buildExportSlot(
+  calendarDay: Date,
+  hour: number,
+  minute: number,
+): ExportSlot {
   const scheduledAt = new Date(
     Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      EXPORT_SLOT_HOUR_UTC,
-      EXPORT_SLOT_MINUTE_UTC,
+      calendarDay.getUTCFullYear(),
+      calendarDay.getUTCMonth(),
+      calendarDay.getUTCDate(),
+      hour,
+      minute,
       0,
       0,
     ),
@@ -65,13 +71,18 @@ export function getExportSlotForDay(now: Date): ExportSlot {
   };
 }
 
+export function getExportSlotsForDay(now: Date): ExportSlot[] {
+  return EXPORT_SLOTS_UTC.map(({ hour, minute }) => buildExportSlot(now, hour, minute));
+}
+
 export function shouldRunExport(now: Date): ExportSlot | null {
-  const slot = getExportSlotForDay(now);
-  const windowEnd = new Date(
-    slot.scheduledAt.getTime() + EXPORT_SLOT_WINDOW_MINUTES * 60 * 1000,
-  );
-  if (now >= slot.scheduledAt && now < windowEnd) {
-    return slot;
+  for (const slot of getExportSlotsForDay(now)) {
+    const windowEnd = new Date(
+      slot.scheduledAt.getTime() + EXPORT_SLOT_WINDOW_MINUTES * 60 * 1000,
+    );
+    if (now >= slot.scheduledAt && now < windowEnd) {
+      return slot;
+    }
   }
   return null;
 }

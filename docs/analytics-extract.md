@@ -84,7 +84,7 @@ Triaged by reversibility, as in #1.
 
 - **D2 — Mechanism: a gated step in the existing scheduled handler, not a Cloudflare Workflow.** The 15-minute cron already exists; the export fires when a tick crosses the export slot, guarded by the same idempotency pattern as prompt scheduling (F2 of #1). A whole snapshot fits comfortably in one invocation, so a Workflow would add a second execution surface, config, and failure domain for no current gain. This is the deliberately reversible reading of the original sketch: if the N4 trigger ever fires, a Workflow (or Queue-driven chunking) is the natural re-entry point for a multi-step incremental export.
 - **D3 — ELT posture.** The extract performs no cleansing and no modeling — minimization (F4) and serialization only. All transformation happens in the analytics platform against landed raw data, so a transform bug is fixed by re-running downstream against R2, never by re-extracting D1.
-- **D4 — Cadence: daily, one slot, as a named constant.** One export per day satisfies F3 with margin. The layout already accommodates multiple files per day, so moving to hourly is a one-line constant change plus deploy — configuration in the #1 sense (a code edit *is* the config UI).
+- **D4 — Cadence: twice daily, two slots 12 hours apart.** Exports at **03:00** and **15:00 UTC** satisfy F3 with ~12h worst-case freshness. Slots are a named constant array; adding or changing cadence is a one-line edit plus deploy — configuration in the #1 sense (a code edit *is* the config UI).
 
 ## 6. Acceptance criteria
 
@@ -97,7 +97,7 @@ Triaged by reversibility, as in #1.
 - [ ] Consumer token verified read-only; no new Worker secrets (N2).
 - [ ] A day with no export is detectable from the bucket alone (N3).
 
-**Live validation gate (pre-committed):** after 7 consecutive days in production — 7 daily manifests per table, zero unexplained export failures, and analytics-side row counts matching D1 on inspection. Failure of the gate blocks building anything downstream of the extract.
+**Live validation gate (pre-committed):** after 7 consecutive days in production — **two daily manifests per table per day** (`030000` and `150000`), zero unexplained export failures, and analytics-side row counts matching D1 on inspection. Failure of the gate blocks building anything downstream of the extract.
 
 ## 7. Delivery order
 

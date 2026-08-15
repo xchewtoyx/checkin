@@ -42,7 +42,7 @@ Deploy is automated on push to `main` — see [docs/deploy.md](docs/deploy.md) f
 - `GET /health` — liveness
 - `GET/POST /c/:token` — check-in page and submission
 - `GET /api/responses?from=&to=` — bearer-token JSON export
-- Cron (15 min) — scheduler, Pushover notification, expiry sweep, daily analytics extract to R2
+- Cron (15 min) — scheduler, Pushover notification, expiry sweep, analytics extract to R2 at 03:00 and 15:00 UTC
 - Analytics consumer hookup — [docs/analytics-consumer.md](docs/analytics-consumer.md)
 
 Secrets (Worker): `PUSHOVER_TOKEN`, `PUSHOVER_USER`, `EXPORT_BEARER_TOKEN`. Vars: `BASE_URL`, `SCHEDULE_WINDOWS`.

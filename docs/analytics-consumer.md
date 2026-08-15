@@ -11,7 +11,7 @@ Operational guide for importing checkin analytics extracts from R2 (issue #14, s
 | Response import prefix | `raw/cloudflare/checkins/checkin_response/` |
 | Manifest prefix (monitoring) | `raw/cloudflare/checkins/manifests/` |
 
-Each daily export writes three objects under a shared `extraction_date=YYYY-MM-DD/HHMMSS` partition key (slot time **03:00 UTC** → `030000`).
+Each daily export writes three objects under a shared `extraction_date=YYYY-MM-DD/HHMMSS` partition key. Two slots run **12 hours apart**: **03:00 UTC** (`030000`) and **15:00 UTC** (`150000`).
 
 ## Read-only R2 token (N2)
 
@@ -51,7 +51,7 @@ Point the analytics platform's **S3-compatible import** at two table prefixes (o
 | `checkin_prompt` | `s3://checkin-analytics/raw/cloudflare/checkins/checkin_prompt/` | gzipped JSONL, Hive partition `extraction_date` |
 | `checkin_response` | `s3://checkin-analytics/raw/cloudflare/checkins/checkin_response/` | gzipped JSONL, Hive partition `extraction_date` |
 
-Column names match D1 exactly, except `response_token` and `notification_id` are **never** present in prompt exports (F4). Select the **latest** file per table (or latest `extraction_date` partition) when loading current state — snapshots are complete point-in-time copies, not deltas.
+Column names match D1 exactly, except `response_token` and `notification_id` are **never** present in prompt exports (F4). Select the **latest** file per table (or latest `extraction_date` / slot timestamp partition) when loading current state — snapshots are complete point-in-time copies, not deltas. Expect **two snapshot pairs per calendar day** (`030000` and `150000`).
 
 ## Tie-back verification (F6)
 
@@ -70,12 +70,14 @@ Expected output: `tie-back ok: prompt=N response=M manifest=...`
 
 ## Absence detection (N3)
 
-Alarm when a calendar day has **no** manifest under `raw/cloudflare/checkins/manifests/extraction_date=YYYY-MM-DD/`. Example check (run daily after 04:00 UTC):
+Alarm when a calendar day is missing **either** expected manifest (`030000` or `150000`) under `raw/cloudflare/checkins/manifests/extraction_date=YYYY-MM-DD/`. Example checks (run after each slot window closes):
 
 ```bash
 DATE=$(date -u +%F)
-aws s3 ls "s3://checkin-analytics/raw/cloudflare/checkins/manifests/extraction_date=${DATE}/" \
-  | grep -q . || echo "missing export for ${DATE}"
+for SLOT in 030000 150000; do
+  aws s3 ls "s3://checkin-analytics/raw/cloudflare/checkins/manifests/extraction_date=${DATE}/${SLOT}.json" \
+    || echo "missing export for ${DATE} slot ${SLOT}"
+done
 ```
 
 Export failures are also logged server-side as `analytics_extract_failed`.
