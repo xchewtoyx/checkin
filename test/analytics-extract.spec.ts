@@ -2,11 +2,11 @@ import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import {
   AnalyticsExtractEnv,
+  buildExportSlot,
   buildManifestObjectKey,
   buildTableObjectKey,
   countJsonlLines,
   executeAnalyticsExtract,
-  getExportSlotForDay,
   gunzipText,
   runAnalyticsExtract,
   shouldRunExport,
@@ -86,21 +86,61 @@ async function seedPromptAndResponse(): Promise<void> {
 }
 
 describe("analytics extract slot gating", () => {
-  it("runs only inside the daily export window", () => {
+  it("runs only inside the daily export windows", () => {
     expect(shouldRunExport(new Date("2026-08-15T02:59:00.000Z"))).toBeNull();
-    expect(shouldRunExport(new Date("2026-08-15T03:00:00.000Z"))).not.toBeNull();
-    expect(shouldRunExport(new Date("2026-08-15T03:14:59.000Z"))).not.toBeNull();
+    expect(shouldRunExport(new Date("2026-08-15T03:00:00.000Z"))?.objectTimestamp).toBe(
+      "030000",
+    );
+    expect(shouldRunExport(new Date("2026-08-15T03:14:59.000Z"))?.objectTimestamp).toBe(
+      "030000",
+    );
     expect(shouldRunExport(new Date("2026-08-15T03:15:00.000Z"))).toBeNull();
+    expect(shouldRunExport(new Date("2026-08-15T12:00:00.000Z"))).toBeNull();
+    expect(shouldRunExport(new Date("2026-08-15T15:00:00.000Z"))?.objectTimestamp).toBe(
+      "150000",
+    );
+    expect(shouldRunExport(new Date("2026-08-15T15:14:59.000Z"))?.objectTimestamp).toBe(
+      "150000",
+    );
+    expect(shouldRunExport(new Date("2026-08-15T15:15:00.000Z"))).toBeNull();
   });
 
   it("keys object paths to the scheduled slot time, not wall clock", () => {
-    const slot = getExportSlotForDay(new Date("2026-08-15T03:05:00.000Z"));
-    expect(buildTableObjectKey("checkin_prompt", slot)).toBe(
+    const morning = buildExportSlot(new Date("2026-08-15T03:05:00.000Z"), 3, 0);
+    expect(buildTableObjectKey("checkin_prompt", morning)).toBe(
       "raw/cloudflare/checkins/checkin_prompt/extraction_date=2026-08-15/030000.jsonl.gz",
     );
-    expect(buildManifestObjectKey(slot)).toBe(
+    expect(buildManifestObjectKey(morning)).toBe(
       "raw/cloudflare/checkins/manifests/extraction_date=2026-08-15/030000.json",
     );
+
+    const afternoon = buildExportSlot(new Date("2026-08-15T15:05:00.000Z"), 15, 0);
+    expect(buildTableObjectKey("checkin_prompt", afternoon)).toBe(
+      "raw/cloudflare/checkins/checkin_prompt/extraction_date=2026-08-15/150000.jsonl.gz",
+    );
+  });
+
+  it("writes separate file sets for each daily slot", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+    await seedPromptAndResponse();
+    const extractEnv = createExtractEnv(bucket);
+    const day = new Date("2026-08-17T03:05:00.000Z");
+
+    await executeAnalyticsExtract(
+      extractEnv,
+      buildExportSlot(day, 3, 0),
+      new Date("2026-08-17T03:05:00.000Z"),
+    );
+    await executeAnalyticsExtract(
+      extractEnv,
+      buildExportSlot(day, 15, 0),
+      new Date("2026-08-17T15:05:00.000Z"),
+    );
+
+    const listed = await bucket.list({
+      prefix: "raw/cloudflare/checkins/checkin_prompt/extraction_date=2026-08-17/",
+    });
+    expect(listed.objects).toHaveLength(2);
   });
 });
 
@@ -110,7 +150,7 @@ describe("analytics extract snapshot", () => {
     await seedPromptAndResponse();
 
     const now = new Date("2026-08-15T03:05:00.000Z");
-    const slot = getExportSlotForDay(now);
+    const slot = buildExportSlot(now, 3, 0);
     const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
 
     expect(manifest.tables.checkin_prompt.row_count).toBe(1);
@@ -147,7 +187,7 @@ describe("analytics extract snapshot", () => {
     await seedPromptAndResponse();
 
     const now = new Date("2026-08-16T03:05:00.000Z");
-    const slot = getExportSlotForDay(now);
+    const slot = buildExportSlot(now, 3, 0);
     const extractEnv = createExtractEnv(bucket);
 
     await executeAnalyticsExtract(extractEnv, slot, now);
@@ -187,7 +227,11 @@ describe("analytics extract loop isolation", () => {
     await expect(runScheduler(extractEnv, notifier, now)).resolves.toBeUndefined();
 
     await expect(
-      executeAnalyticsExtract(extractEnv, getExportSlotForDay(now), now),
+      executeAnalyticsExtract(
+        extractEnv,
+        buildExportSlot(now, 3, 0),
+        now,
+      ),
     ).rejects.toThrow("r2 unavailable");
   });
 });

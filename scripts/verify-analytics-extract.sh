@@ -8,7 +8,10 @@ set -euo pipefail
 #
 # Example:
 #   bash scripts/verify-analytics-extract.sh \
-#     raw/cloudflare/checkins/manifests/extraction_date=2026-08-15/030000.json
+# Example (morning slot):
+#   raw/cloudflare/checkins/manifests/extraction_date=2026-08-15/030000.json
+# Example (afternoon slot):
+#   raw/cloudflare/checkins/manifests/extraction_date=2026-08-15/150000.json
 #
 # Requires: wrangler (authenticated), jq, gunzip. Uses remote R2 unless --local is
 # passed through WRANGLER_R2_FLAGS.
