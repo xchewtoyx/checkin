@@ -102,7 +102,7 @@ Triaged by reversibility, as in #1.
 ## 7. Delivery order
 
 1. **E1 — The extract.** R2 binding + bucket, snapshot writer, manifest, slot gating in the scheduled handler, loop-isolation and idempotency tests. *This slice alone satisfies every F requirement.*
-2. **E2 — The consumer hookup.** Scoped read-only token, import-source configuration, tie-back verification, `docs/deploy.md` update. Mostly operations and documentation.
+2. **E2 — The consumer hookup.** Scoped read-only token, import-source configuration, tie-back verification, `docs/deploy.md` update. Mostly operations and documentation. See [`docs/analytics-consumer.md`](analytics-consumer.md) and `scripts/verify-analytics-extract.sh`.
 
 ## 8. Deferred — cut from this scope, held open by design
 

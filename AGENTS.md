@@ -43,5 +43,6 @@ Deploy is automated on push to `main` — see [docs/deploy.md](docs/deploy.md) f
 - `GET/POST /c/:token` — check-in page and submission
 - `GET /api/responses?from=&to=` — bearer-token JSON export
 - Cron (15 min) — scheduler, Pushover notification, expiry sweep, daily analytics extract to R2
+- Analytics consumer hookup — [docs/analytics-consumer.md](docs/analytics-consumer.md)
 
 Secrets (Worker): `PUSHOVER_TOKEN`, `PUSHOVER_USER`, `EXPORT_BEARER_TOKEN`. Vars: `BASE_URL`, `SCHEDULE_WINDOWS`.
