@@ -17,7 +17,12 @@ Copy the returned **database ID** into the GitHub repository variable `CLOUDFLAR
 
 ### 2. Analytics extract bucket (R2)
 
-Create the R2 bucket once for daily D1 snapshots (issue #14):
+**Enable R2 on the account first** — Cloudflare dashboard → **R2** → follow the
+onboarding prompt. Deploy fails with `Please enable R2 through the Cloudflare
+Dashboard [code: 10042]` until this is done. Adding **Workers R2 Storage → Edit**
+to the API token is not sufficient on its own.
+
+Create the bucket once for daily D1 snapshots (issue #14):
 
 ```bash
 npx wrangler r2 bucket create checkin-analytics
