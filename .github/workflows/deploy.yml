@@ -41,12 +41,10 @@ jobs:
           fi
           sed -i "s/__CLOUDFLARE_D1_DATABASE_ID__/${{ vars.CLOUDFLARE_D1_DATABASE_ID }}/g" wrangler.toml
       - name: Ensure analytics R2 bucket exists
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: r2 bucket create checkin-analytics
-        # Fails with code 10042 if R2 is not enabled on the account — see deploy.md §2.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bash scripts/ensure-r2-bucket.sh checkin-analytics
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v3
         with:
