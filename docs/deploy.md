@@ -15,14 +15,24 @@ npx wrangler d1 create checkin
 
 Copy the returned **database ID** into the GitHub repository variable `CLOUDFLARE_D1_DATABASE_ID`.
 
-### 2. Pushover
+### 2. Analytics extract bucket (R2)
+
+Create the R2 bucket once for daily D1 snapshots (issue #14):
+
+```bash
+npx wrangler r2 bucket create checkin-analytics
+```
+
+The Worker binds this bucket as `EXTRACT_BUCKET` in `wrangler.toml`. No new Worker secrets are required — the binding uses the deploy token's R2 permissions.
+
+### 3. Pushover
 
 Create a Pushover application at [pushover.net](https://pushover.net/) and note:
 
 - Application API token → GitHub secret `PUSHOVER_TOKEN`
 - User key → GitHub secret `PUSHOVER_USER`
 
-### 3. Export bearer token
+### 4. Export bearer token
 
 Generate a long random token for `/api/responses`:
 
@@ -32,17 +42,18 @@ openssl rand -hex 32
 
 Store as GitHub secret `EXPORT_BEARER_TOKEN`.
 
-### 4. Cloudflare API token
+### 5. Cloudflare API token
 
 Create an API token with at least:
 
 - Account → Cloudflare Workers Scripts → Edit
 - Account → D1 → Edit
+- Account → R2 → Edit
 - Account → Account Settings → Read
 
 Store as GitHub secret `CLOUDFLARE_API_TOKEN`. Store your account ID as `CLOUDFLARE_ACCOUNT_ID`.
 
-### 5. Production URL
+### 6. Production URL
 
 After the first successful deploy, set GitHub repository variable:
 

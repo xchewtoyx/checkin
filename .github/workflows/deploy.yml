@@ -40,6 +40,13 @@ jobs:
             exit 1
           fi
           sed -i "s/__CLOUDFLARE_D1_DATABASE_ID__/${{ vars.CLOUDFLARE_D1_DATABASE_ID }}/g" wrangler.toml
+      - name: Ensure analytics R2 bucket exists
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: r2 bucket create checkin-analytics
+        continue-on-error: true
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v3
         with:

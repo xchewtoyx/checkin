@@ -25,6 +25,18 @@ export interface ResponseRow {
   submitted_at: string;
 }
 
+/** Prompt columns exported to analytics (F4 excludes credentials). */
+export interface ExportedPromptRow {
+  id: string;
+  scheduled_for: string;
+  sent_at: string | null;
+  expires_at: string | null;
+  status: PromptStatus;
+  created_at: string;
+}
+
+export type ExportedResponseRow = ResponseRow;
+
 export function promptId(dateKey: string, windowIndex: number): string {
   return `prompt-${dateKey}-w${windowIndex}`;
 }
@@ -165,5 +177,31 @@ export async function listResponses(
 
   const statement = db.prepare(query);
   const result = await statement.bind(...bindings).all<ResponseRow>();
+  return result.results ?? [];
+}
+
+export async function listAllPromptsForExport(
+  db: D1Database,
+): Promise<ExportedPromptRow[]> {
+  const result = await db
+    .prepare(
+      `SELECT id, scheduled_for, sent_at, expires_at, status, created_at
+       FROM checkin_prompt
+       ORDER BY created_at ASC`,
+    )
+    .all<ExportedPromptRow>();
+  return result.results ?? [];
+}
+
+export async function listAllResponsesForExport(
+  db: D1Database,
+): Promise<ExportedResponseRow[]> {
+  const result = await db
+    .prepare(
+      `SELECT id, prompt_id, feeling, intensity, observed_at, submitted_at
+       FROM checkin_response
+       ORDER BY observed_at ASC`,
+    )
+    .all<ExportedResponseRow>();
   return result.results ?? [];
 }
