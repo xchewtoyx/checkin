@@ -46,7 +46,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: r2 bucket create checkin-analytics
-        continue-on-error: true
+        # Fails with code 10042 if R2 is not enabled on the account — see deploy.md §2.
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v3
         with:
