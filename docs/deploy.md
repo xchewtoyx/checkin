@@ -113,3 +113,16 @@ npm run dev
 ```
 
 Production configuration lives in the `production` Wrangler environment; local defaults use `local-checkin-db` and `http://127.0.0.1:8787`.
+
+## Analytics extract (issue #14)
+
+Daily D1 snapshots land in R2 bucket `checkin-analytics` (see [analytics-extract.md](analytics-extract.md)). After E1 deploy:
+
+1. Ensure the bucket exists (`wrangler r2 bucket create checkin-analytics` — also attempted in deploy workflow).
+2. Complete **consumer hookup** per [analytics-consumer.md](analytics-consumer.md): read-only R2 token, import-source prefixes, tie-back verification.
+3. Run tie-back on the latest manifest:
+
+```bash
+bash scripts/verify-analytics-extract.sh \
+  raw/cloudflare/checkins/manifests/extraction_date=YYYY-MM-DD/030000.json
+```
