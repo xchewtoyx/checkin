@@ -12,6 +12,11 @@ database_name = "checkin"
 database_id = "local-checkin-db"
 migrations_dir = "migrations"
 
+[[r2_buckets]]
+binding = "EXTRACT_BUCKET"
+bucket_name = "checkin-analytics"
+preview_bucket_name = "checkin-analytics-preview"
+
 [triggers]
 crons = ["*/15 * * * *"]
 
@@ -26,6 +31,10 @@ binding = "DB"
 database_name = "checkin"
 database_id = "__CLOUDFLARE_D1_DATABASE_ID__"
 migrations_dir = "migrations"
+
+[[env.production.r2_buckets]]
+binding = "EXTRACT_BUCKET"
+bucket_name = "checkin-analytics"
 
 [env.production.triggers]
 crons = ["*/15 * * * *"]

@@ -1,4 +1,5 @@
 import { renderCheckinPage, renderRecordedPage } from "./checkin-page";
+import { runAnalyticsExtract } from "./analytics-extract";
 import {
   authorizeExport,
   parseExportQuery,
@@ -14,6 +15,7 @@ export interface Env extends SchedulerEnv {
   PUSHOVER_TOKEN?: string;
   PUSHOVER_USER?: string;
   EXPORT_BEARER_TOKEN?: string;
+  EXTRACT_BUCKET?: R2Bucket;
 }
 
 function buildNotifier(env: Env): Notifier {
@@ -116,7 +118,16 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
+    const now = new Date();
     log("info", "scheduler_run", {});
-    await runScheduler(env, buildNotifier(env), new Date());
+    await runScheduler(env, buildNotifier(env), now);
+
+    try {
+      await runAnalyticsExtract(env, now);
+    } catch (error) {
+      log("error", "analytics_extract_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
   },
 };
