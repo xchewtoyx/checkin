@@ -443,7 +443,8 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
         var target = event.target;
         var word = deepestWord();
         if (!(target instanceof HTMLButtonElement) || !word || saving) return;
-        submit(Number(target.getAttribute("data-intensity")), word);
+        var hue = intensityWrap.style.getPropertyValue("--h");
+        submit(Number(target.getAttribute("data-intensity")), word, confidence, hue);
       });
 
       function setRecorded(recorded) {
@@ -453,12 +454,12 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
         document.getElementById("recorded").classList.toggle("open", recorded);
       }
 
-      function submit(intensity, feeling) {
+      function submit(intensity, feeling, submittedConfidence, hue) {
         saving = true;
         statusEl.textContent = "Saving…";
         var note = document.getElementById("note").value;
         var body = { feeling: feeling, intensity: intensity, note: note };
-        if (confidence) body.confidence = confidence;
+        if (submittedConfidence) body.confidence = submittedConfidence;
         fetch(window.location.pathname, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -471,10 +472,10 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
           }
           statusEl.textContent = "";
           var recorded = document.getElementById("recorded");
-          recorded.style.setProperty("--h", intensityWrap.style.getPropertyValue("--h"));
+          recorded.style.setProperty("--h", hue);
           document.getElementById("recorded-word").textContent = feeling;
           var meta = "Recorded · intensity " + intensity + " of 10";
-          if (confidence) meta += " · " + confidence + " confidence";
+          if (submittedConfidence) meta += " · " + submittedConfidence + " confidence";
           if (note.trim()) meta += " · \\u201c" + note.trim() + "\\u201d";
           document.getElementById("recorded-meta").textContent = meta;
           setRecorded(true);

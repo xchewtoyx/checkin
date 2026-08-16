@@ -80,19 +80,25 @@ to `checkin_response`, both additive per the rule above — they appear in
 migration deploys, with no backfill against rows recorded before it:
 
 - **`note`** (`TEXT`, nullable) — the check-in's optional free-text note,
-  now stored separately from `feeling` (#27). **Cutover:** from the first
-  response recorded after this migration, `feeling` is always a bare
-  taxonomy word (`src/feelings-wheel.ts`) and any note is carried in `note`
-  instead. Responses recorded *before* the migration keep the legacy
-  pattern: the note, if any, is embedded in `feeling` as `"word: note"`,
-  and `note` is `NULL` for those rows.
-  **Downstream parsing rule:** split `feeling` on the first `": "`. For a
-  post-cutover row this is a no-op (no `": "` present, `note` already
-  populated). For a pre-cutover row it recovers `(word, qualifier)`; treat
-  the qualifier as that row's note. This mirrors the free-text handling
+  now stored separately from `feeling` (#27). **No timestamp cutover:**
+  the production deploy workflow applies the D1 migration *before* it
+  deploys the new Worker (`.github/workflows/deploy.yml`), so there's a
+  window — and indefinitely, if the deploy step after the migration ever
+  fails — where the `note` column exists but the still-running old Worker
+  code has no idea it does. Any row from that window is written by the old
+  code path: `feeling` gets the concatenated `"word: note"` form and `note`
+  is left `NULL`, exactly like a pre-migration row. A rule keyed to "was
+  this row recorded after the migration ran" would misclassify those rows,
+  so don't use one.
+  **Downstream parsing rule (row-shape, not time-based):** if `note` is
+  non-`NULL`, `feeling` is already a bare word — nothing to parse. If
+  `note` is `NULL`, split `feeling` on the first `": "`: a match recovers
+  `(word, qualifier)` — treat the qualifier as that row's note; no match
+  means there never was a note. This mirrors the free-text handling
   described in [checkin-analytics#1](https://github.com/xchewtoyx/checkin-analytics/issues/1)
-  §3 — that transform's parsing rule should be updated to apply only to
-  rows from before this cutover.
+  §3 — that transform's parsing rule should be updated to branch on
+  whether `note` is populated, not on any extraction or migration
+  timestamp.
 - **`confidence`** (`TEXT`, nullable, `weak` \| `strong`) — an optional
   self-rating on the recorded feeling, introduced by the progressive
   disclosure ladder (#32). No historical rows have a value; always `NULL`
