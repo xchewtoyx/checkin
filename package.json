@@ -8,6 +8,7 @@
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "wheel-svg": "node --experimental-strip-types scripts/generate-wheel-svg.mjs",
     "ci": "npm run typecheck && npm test"
   },
   "devDependencies": {

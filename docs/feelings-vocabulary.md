@@ -22,7 +22,9 @@ tables below.
 ## The E3 taxonomy (issue #31)
 
 Six cores, each with exactly six middle words, each with exactly six outer
-words: 6 + 36 + 216 = 258 nodes, every word unique case-insensitively. The
+words: 6 + 36 + 216 = 258 nodes, every word unique case-insensitively.
+The full wheel is rendered at [`feelings-wheel.svg`](feelings-wheel.svg),
+regenerated from the data with `npm run wheel-svg`. The
 structural test in `test/feelings-wheel.spec.ts` asserts the shape, the
 uniqueness, and the label budget (≤ 12 characters, provisional until #32
 fixes the chip metrics).
