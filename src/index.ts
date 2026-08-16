@@ -73,7 +73,7 @@ async function handleCheckinToken(
     feeling?: string;
     intensity?: number;
     note?: string;
-    confidence?: string;
+    confidence?: string | null;
   };
 
   if (!payload.feeling || payload.intensity === undefined) {

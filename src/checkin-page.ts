@@ -334,18 +334,18 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
       }
 
       function renderRow(rowIndex, words, hue) {
-        var html = "";
+        var container = chipEls[rowIndex];
+        container.innerHTML = "";
         for (var i = 0; i < words.length; i++) {
-          html +=
-            '<button type="button" class="chip" style="--h:' +
-            hue +
-            '" aria-pressed="false" data-word="' +
-            words[i] +
-            '">' +
-            words[i] +
-            "</button>";
+          var button = document.createElement("button");
+          button.type = "button";
+          button.className = "chip";
+          button.style.setProperty("--h", hue);
+          button.setAttribute("aria-pressed", "false");
+          button.setAttribute("data-word", words[i]);
+          button.textContent = words[i];
+          container.appendChild(button);
         }
-        chipEls[rowIndex].innerHTML = html;
       }
 
       function clearRow(rowIndex) {

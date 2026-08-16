@@ -96,6 +96,22 @@ describe("recordResponse — note and confidence", () => {
     expect(row?.confidence).toBeNull();
   });
 
+  it("treats an explicit null confidence the same as unset", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-conf-null", "token-conf-null"));
+
+    const result = await recordResponse(env.DB, {
+      token: "token-conf-null",
+      feeling: "content",
+      intensity: 5,
+      confidence: null,
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchResponseRow("response-prompt-conf-null");
+    expect(row?.confidence).toBeNull();
+  });
+
   it("rejects an invalid confidence value", async () => {
     await insertPrompt(env.DB, makePrompt("prompt-conf-bad", "token-conf-bad"));
 

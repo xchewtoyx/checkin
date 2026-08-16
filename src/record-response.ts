@@ -15,7 +15,7 @@ export interface RecordResponseInput {
   feeling: string;
   intensity: number;
   note?: string;
-  confidence?: string;
+  confidence?: string | null;
   now: Date;
 }
 
@@ -49,7 +49,7 @@ export async function recordResponse(
   }
 
   if (
-    input.confidence !== undefined &&
+    input.confidence != null &&
     !CONFIDENCE_VALUES.includes(input.confidence as Confidence)
   ) {
     return { ok: false, reason: "invalid" };
