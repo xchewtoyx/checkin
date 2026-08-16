@@ -1,7 +1,60 @@
 import { describe, expect, it } from "vitest";
 import { renderCheckinPage } from "../src/checkin-page";
-import { WHEEL, sampleFeelings } from "../src/feelings-wheel";
+import { LABEL_BUDGET, WHEEL, sampleFeelings } from "../src/feelings-wheel";
 import { PromptRow } from "../src/store";
+
+const allWords = WHEEL.flatMap((s) => [
+  s.core,
+  ...s.feelings.flatMap((f) => [f.word, ...f.finer]),
+]);
+
+describe("taxonomy structure (issue #31)", () => {
+  it("is a perfectly regular 6×6×6 tree", () => {
+    expect(WHEEL).toHaveLength(6);
+    for (const sector of WHEEL) {
+      expect(sector.feelings, sector.core).toHaveLength(6);
+      for (const feeling of sector.feelings) {
+        expect(feeling.finer, `${sector.core} > ${feeling.word}`).toHaveLength(6);
+      }
+    }
+  });
+
+  it("counts 6 cores, 36 middle, 216 outer, 258 total", () => {
+    const middles = WHEEL.flatMap((s) => s.feelings.map((f) => f.word));
+    const outers = WHEEL.flatMap((s) => s.feelings.flatMap((f) => f.finer));
+    expect(middles).toHaveLength(36);
+    expect(outers).toHaveLength(216);
+    expect(allWords).toHaveLength(258);
+  });
+
+  it("has no duplicate word anywhere in the tree, case-insensitively", () => {
+    const seen = new Map<string, string>();
+    for (const word of allWords) {
+      const key = word.toLowerCase();
+      expect(seen.get(key), `duplicate word: ${word}`).toBeUndefined();
+      seen.set(key, word);
+    }
+    expect(seen.size).toBe(258);
+  });
+
+  it("keeps every label within the chip budget", () => {
+    for (const word of allWords) {
+      expect(word.length, word).toBeLessThanOrEqual(LABEL_BUDGET);
+      expect(word).toMatch(/^[a-z]+( [a-z]+)?$/);
+    }
+  });
+
+  it("carries sector metadata: distinct hues and both valences", () => {
+    const hues = new Set(WHEEL.map((s) => s.hue));
+    expect(hues.size).toBe(6);
+    for (const sector of WHEEL) {
+      expect(sector.hue).toMatch(/^#[0-9a-f]{6}$/);
+      expect(["pleasant", "unpleasant"]).toContain(sector.valence);
+    }
+    const valences = new Set(WHEEL.map((s) => s.valence));
+    expect(valences.size).toBe(2);
+  });
+});
 
 describe("sampleFeelings", () => {
   it("draws two distinct words from each sector in wheel order", () => {
