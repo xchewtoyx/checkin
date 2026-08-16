@@ -73,6 +73,7 @@ async function handleCheckinToken(
     feeling?: string;
     intensity?: number;
     note?: string;
+    confidence?: string;
   };
 
   if (!payload.feeling || payload.intensity === undefined) {
@@ -84,6 +85,7 @@ async function handleCheckinToken(
     feeling: payload.feeling,
     intensity: Number(payload.intensity),
     note: payload.note,
+    confidence: payload.confidence,
     now,
   });
 

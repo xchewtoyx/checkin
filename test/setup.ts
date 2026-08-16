@@ -20,6 +20,8 @@ beforeAll(async () => {
       prompt_id TEXT REFERENCES checkin_prompt(id),
       feeling TEXT NOT NULL,
       intensity INTEGER NOT NULL CHECK (intensity >= 1 AND intensity <= 10),
+      note TEXT,
+      confidence TEXT CHECK (confidence IS NULL OR confidence IN ('weak', 'strong')),
       observed_at TEXT NOT NULL,
       submitted_at TEXT NOT NULL
     )`,

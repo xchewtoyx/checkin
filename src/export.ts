@@ -46,6 +46,8 @@ export function serializeResponses(rows: ResponseRow[]): string {
       prompt_id: row.prompt_id,
       feeling: row.feeling,
       intensity: row.intensity,
+      note: row.note,
+      confidence: row.confidence,
       observed_at: row.observed_at,
       submitted_at: row.submitted_at,
     })),

@@ -1,4 +1,4 @@
-import { sampleFeelings } from "./feelings-wheel";
+import { WHEEL } from "./feelings-wheel";
 import { getLondonParts } from "./london-time";
 import { isPromptUsable } from "./record-response";
 import { PromptRow } from "./store";
@@ -9,6 +9,13 @@ function escapeHtml(value: string): string {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+// Safe to embed inside a <script> block: escapes "</" so a taxonomy word
+// can never prematurely close the tag (defense in depth — WHEEL is
+// developer-authored data, not user input).
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value).replaceAll("</", "<\\/");
 }
 
 const STYLE = `
@@ -67,9 +74,11 @@ const STYLE = `
     color: var(--muted);
     margin: 0 0 0.45rem;
   }
+  .ladder-row { display: none; }
+  .ladder-row.visible { display: block; }
   .chips {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 0.4rem;
   }
   .chip {
@@ -79,11 +88,16 @@ const STYLE = `
     background: color-mix(in oklab, var(--h) 11%, var(--surface));
     color: color-mix(in oklab, var(--h) 52%, var(--ink));
     border-radius: 999px;
-    padding: 0.5rem 0.8rem;
+    padding: 0.4rem 0.55rem;
     font: inherit;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 600;
+    line-height: 1.15;
     min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     cursor: pointer;
   }
   .chip[aria-pressed="true"] {
@@ -105,6 +119,27 @@ const STYLE = `
     min-height: 44px;
   }
   .note input::placeholder { color: var(--muted); }
+  .confidence-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .confidence-row .toggle { display: flex; gap: 0.4rem; }
+  .confidence-row button {
+    appearance: none;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    padding: 0.4rem 0.75rem;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .confidence-row button[aria-pressed="true"] {
+    border-color: var(--focus);
+    color: var(--ink);
+    background: color-mix(in oklab, var(--focus) 14%, var(--surface));
+    font-weight: 800;
+  }
   .intensity-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.45rem; }
   .intensity-head .hint { color: var(--muted); font-size: 0.82rem; }
   .intensity {
@@ -210,12 +245,10 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
     return renderExpiredPage();
   }
 
-  const chips = sampleFeelings(prompt.response_token)
-    .map(
-      (f) =>
-        `<button type="button" class="chip" style="--h:${f.hue}" aria-pressed="false" data-feeling="${escapeHtml(f.word)}">${escapeHtml(f.word)}</button>`,
-    )
-    .join("");
+  const coreChips = WHEEL.map(
+    (sector) =>
+      `<button type="button" class="chip" style="--h:${sector.hue}" aria-pressed="false" data-word="${escapeHtml(sector.core)}">${escapeHtml(sector.core)}</button>`,
+  ).join("");
 
   const intensities = Array.from({ length: 10 }, (_, index) => {
     const value = index + 1;
@@ -227,12 +260,29 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
       <p class="eyebrow">check-in · ${escapeHtml(londonMoment(now))}</p>
       <h1>How are you?</h1>
     </header>
-    <section id="form-chips">
-      <p class="group-label">two from each family — pick what resonates</p>
-      <div class="chips" id="chips" role="group" aria-label="Feelings">${chips}</div>
+    <section id="row-0" class="ladder-row visible">
+      <p class="group-label">what feels closest?</p>
+      <div class="chips" id="chips-0" role="group" aria-label="Core feelings">${coreChips}</div>
+    </section>
+    <section id="row-1" class="ladder-row">
+      <p class="group-label">narrow it down</p>
+      <div class="chips" id="chips-1" role="group" aria-label="More specific feelings"></div>
+    </section>
+    <section id="row-2" class="ladder-row">
+      <p class="group-label">narrower still (optional)</p>
+      <div class="chips" id="chips-2" role="group" aria-label="Most specific feelings"></div>
     </section>
     <section class="note" id="form-note">
       <input id="note" type="text" maxlength="200" placeholder="Add a note (optional)" aria-label="Optional note">
+    </section>
+    <section id="form-confidence">
+      <div class="confidence-row">
+        <p class="eyebrow" style="margin:0">confidence</p>
+        <div class="toggle" id="confidence-toggle" role="group" aria-label="Confidence (optional)">
+          <button type="button" data-confidence="weak" aria-pressed="false">weak</button>
+          <button type="button" data-confidence="strong" aria-pressed="false">strong</button>
+        </div>
+      </div>
     </section>
     <section id="form-intensity">
       <div class="intensity-head">
@@ -249,36 +299,151 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
     <p id="status" role="status"></p>
   </main>
   <script>
+    var WHEEL = ${jsonForScript(WHEEL)};
     (function () {
-      var feeling = null;
+      var depth = [null, null, null]; // selected word at [core, middle, outer]
+      var hueByDepth = ["#888888", "#888888", "#888888"];
+      var confidence = null;
       var saving = false;
-      var chips = document.getElementById("chips");
+
+      var rowEls = [document.getElementById("row-0"), document.getElementById("row-1"), document.getElementById("row-2")];
+      var chipEls = [document.getElementById("chips-0"), document.getElementById("chips-1"), document.getElementById("chips-2")];
       var intensityWrap = document.getElementById("intensity");
       var hint = document.getElementById("intensity-hint");
       var statusEl = document.getElementById("status");
+      var confidenceToggle = document.getElementById("confidence-toggle");
       var intensityButtons = intensityWrap.querySelectorAll("button");
-      var formIds = ["form-chips", "form-note", "form-intensity"];
+      var formIds = ["row-0", "row-1", "row-2", "form-note", "form-confidence", "form-intensity"];
 
-      chips.addEventListener("click", function (event) {
+      function coreSector(word) {
+        for (var i = 0; i < WHEEL.length; i++) {
+          if (WHEEL[i].core === word) return WHEEL[i];
+        }
+        return null;
+      }
+
+      function middleFeeling(sector, word) {
+        for (var i = 0; i < sector.feelings.length; i++) {
+          if (sector.feelings[i].word === word) return sector.feelings[i];
+        }
+        return null;
+      }
+
+      function deepestWord() {
+        return depth[2] || depth[1] || depth[0];
+      }
+
+      function renderRow(rowIndex, words, hue) {
+        var html = "";
+        for (var i = 0; i < words.length; i++) {
+          html +=
+            '<button type="button" class="chip" style="--h:' +
+            hue +
+            '" aria-pressed="false" data-word="' +
+            words[i] +
+            '">' +
+            words[i] +
+            "</button>";
+        }
+        chipEls[rowIndex].innerHTML = html;
+      }
+
+      function clearRow(rowIndex) {
+        chipEls[rowIndex].innerHTML = "";
+        rowEls[rowIndex].classList.remove("visible");
+        depth[rowIndex] = null;
+      }
+
+      function updateIntensityState() {
+        var word = deepestWord();
+        var active = word !== null;
+        intensityWrap.classList.toggle("active", active);
+        if (active) {
+          var activeDepth = depth[2] ? 2 : depth[1] ? 1 : 0;
+          intensityWrap.style.setProperty("--h", hueByDepth[activeDepth]);
+        }
+        hint.textContent = active ? "how strongly " + word + "?" : "pick a feeling first";
+        for (var j = 0; j < intensityButtons.length; j++) intensityButtons[j].disabled = !active;
+      }
+
+      chipEls[0].addEventListener("click", function (event) {
         var target = event.target;
         if (!(target instanceof HTMLButtonElement)) return;
-        var word = target.getAttribute("data-feeling");
-        feeling = feeling === word ? null : word;
-        var all = chips.querySelectorAll(".chip");
+        var word = target.getAttribute("data-word");
+        var sector = coreSector(word);
+        if (!sector) return;
+
+        hueByDepth[0] = sector.hue;
+        hueByDepth[1] = sector.hue;
+        hueByDepth[2] = sector.hue;
+        clearRow(1);
+        clearRow(2);
+        depth[0] = word;
+
+        var all = chipEls[0].querySelectorAll(".chip");
         for (var i = 0; i < all.length; i++) {
-          all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-feeling") === feeling));
+          all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-word") === word));
         }
-        var active = feeling !== null;
-        intensityWrap.classList.toggle("active", active);
-        if (active) intensityWrap.style.setProperty("--h", target.style.getPropertyValue("--h"));
-        hint.textContent = active ? "how strongly " + feeling + "?" : "pick a feeling first";
-        for (var j = 0; j < intensityButtons.length; j++) intensityButtons[j].disabled = !active;
+
+        var middleWords = [];
+        for (var m = 0; m < sector.feelings.length; m++) middleWords.push(sector.feelings[m].word);
+        renderRow(1, middleWords, sector.hue);
+        rowEls[1].classList.add("visible");
+        updateIntensityState();
+      });
+
+      chipEls[1].addEventListener("click", function (event) {
+        var target = event.target;
+        if (!(target instanceof HTMLButtonElement)) return;
+        var word = target.getAttribute("data-word");
+        var sector = coreSector(depth[0]);
+        if (!sector) return;
+        var feeling = middleFeeling(sector, word);
+        if (!feeling) return;
+
+        clearRow(2);
+        depth[1] = word;
+
+        var all = chipEls[1].querySelectorAll(".chip");
+        for (var i = 0; i < all.length; i++) {
+          all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-word") === word));
+        }
+
+        renderRow(2, feeling.finer, sector.hue);
+        rowEls[2].classList.add("visible");
+        updateIntensityState();
+      });
+
+      chipEls[2].addEventListener("click", function (event) {
+        var target = event.target;
+        if (!(target instanceof HTMLButtonElement)) return;
+        var word = target.getAttribute("data-word");
+
+        depth[2] = word;
+
+        var all = chipEls[2].querySelectorAll(".chip");
+        for (var i = 0; i < all.length; i++) {
+          all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-word") === word));
+        }
+        updateIntensityState();
+      });
+
+      confidenceToggle.addEventListener("click", function (event) {
+        var target = event.target;
+        if (!(target instanceof HTMLButtonElement)) return;
+        var value = target.getAttribute("data-confidence");
+        confidence = confidence === value ? null : value;
+        var all = confidenceToggle.querySelectorAll("button");
+        for (var i = 0; i < all.length; i++) {
+          all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-confidence") === confidence));
+        }
       });
 
       intensityWrap.addEventListener("click", function (event) {
         var target = event.target;
-        if (!(target instanceof HTMLButtonElement) || !feeling || saving) return;
-        submit(Number(target.getAttribute("data-intensity")));
+        var word = deepestWord();
+        if (!(target instanceof HTMLButtonElement) || !word || saving) return;
+        submit(Number(target.getAttribute("data-intensity")), word);
       });
 
       function setRecorded(recorded) {
@@ -288,14 +453,16 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
         document.getElementById("recorded").classList.toggle("open", recorded);
       }
 
-      function submit(intensity) {
+      function submit(intensity, feeling) {
         saving = true;
         statusEl.textContent = "Saving…";
         var note = document.getElementById("note").value;
+        var body = { feeling: feeling, intensity: intensity, note: note };
+        if (confidence) body.confidence = confidence;
         fetch(window.location.pathname, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ feeling: feeling, intensity: intensity, note: note }),
+          body: JSON.stringify(body),
         }).then(function (response) {
           saving = false;
           if (!response.ok) {
@@ -307,6 +474,7 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
           recorded.style.setProperty("--h", intensityWrap.style.getPropertyValue("--h"));
           document.getElementById("recorded-word").textContent = feeling;
           var meta = "Recorded · intensity " + intensity + " of 10";
+          if (confidence) meta += " · " + confidence + " confidence";
           if (note.trim()) meta += " · \\u201c" + note.trim() + "\\u201d";
           document.getElementById("recorded-meta").textContent = meta;
           setRecorded(true);

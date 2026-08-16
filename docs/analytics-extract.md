@@ -68,9 +68,40 @@ The original request arrived solution-first ("cloudflare workflow dumps d1 to r2
 The consumer-facing summary — what the extract promises, and explicitly what it does not:
 
 - **Promised:** complete point-in-time snapshots of both tables at the declared grain; the F2 layout; F3 freshness; F6 counts.
-- **Not promised:** content cleansing — `feeling` strings carry free-text suffixes (`"anxious: before the meeting"`) verbatim; deduplication across snapshots — the consumer selects the latest file per table (or latest partition); a stable number of files per day.
+- **Not promised:** content cleansing — pre-cutover `feeling` strings carry free-text suffixes (`"anxious: before the meeting"`) verbatim (see below); deduplication across snapshots — the consumer selects the latest file per table (or latest partition); a stable number of files per day.
 - **Consumer:** the analytics platform import, owned by @xchewtoyx. This list is the record of who depends on the contract; additions go here.
 - **Schema evolution:** additive only, mirroring #1's D1 evolution rule. A column added by migration appears in export objects from the next run; columns are never renamed or repurposed.
+
+### `checkin_response` schema evolution: `note` and `confidence` (#27, #32)
+
+`migrations/0002_response_note_and_confidence.sql` adds two nullable columns
+to `checkin_response`, both additive per the rule above — they appear in
+`checkin_response` export objects from the first export run after the
+migration deploys, with no backfill against rows recorded before it:
+
+- **`note`** (`TEXT`, nullable) — the check-in's optional free-text note,
+  now stored separately from `feeling` (#27). **Cutover:** from the first
+  response recorded after this migration, `feeling` is always a bare
+  taxonomy word (`src/feelings-wheel.ts`) and any note is carried in `note`
+  instead. Responses recorded *before* the migration keep the legacy
+  pattern: the note, if any, is embedded in `feeling` as `"word: note"`,
+  and `note` is `NULL` for those rows.
+  **Downstream parsing rule:** split `feeling` on the first `": "`. For a
+  post-cutover row this is a no-op (no `": "` present, `note` already
+  populated). For a pre-cutover row it recovers `(word, qualifier)`; treat
+  the qualifier as that row's note. This mirrors the free-text handling
+  described in [checkin-analytics#1](https://github.com/xchewtoyx/checkin-analytics/issues/1)
+  §3 — that transform's parsing rule should be updated to apply only to
+  rows from before this cutover.
+- **`confidence`** (`TEXT`, nullable, `weak` \| `strong`) — an optional
+  self-rating on the recorded feeling, introduced by the progressive
+  disclosure ladder (#32). No historical rows have a value; always `NULL`
+  before the migration, and `NULL` on any row where the check-in author
+  didn't set it (it's opt-in, never required or inferred).
+
+No source backfill is planned for either column, per the ELT posture (D3):
+a transform bug in how legacy rows are reinterpreted is fixed by re-running
+downstream against the landed raw data, never by re-extracting D1.
 
 ## 5. Design decisions
 
