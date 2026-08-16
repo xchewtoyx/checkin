@@ -37,11 +37,11 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "frustrated",
-        finer: ["blocked", "thwarted", "exasperated", "foiled", "fed up", "hampered"],
+        finer: ["blocked", "thwarted", "exasperated", "held up", "fed up", "hampered"],
       },
       {
         word: "resentful",
-        finer: ["bitter", "envious", "jealous", "slighted", "used", "cheated"],
+        finer: ["bitter", "aggrieved", "jealous", "sore", "used", "cheated"],
       },
       {
         word: "hostile",
@@ -53,7 +53,7 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "critical",
-        finer: ["scornful", "cynical", "disgusted", "contemptuous", "appalled", "disdainful"],
+        finer: ["scornful", "cynical", "disgusted", "unimpressed", "appalled", "judgy"],
       },
     ],
   },
@@ -64,11 +64,11 @@ export const WHEEL: WheelSector[] = [
     feelings: [
       {
         word: "anxious",
-        finer: ["worried", "uneasy", "nervous", "on edge", "jittery", "fretful"],
+        finer: ["worried", "uneasy", "nervous", "on edge", "jittery", "tense"],
       },
       {
         word: "panicked",
-        finer: ["terrified", "petrified", "alarmed", "frantic", "shaky", "spooked"],
+        finer: ["terrified", "breathless", "alarmed", "frantic", "shaky", "spooked"],
       },
       {
         word: "insecure",
@@ -76,15 +76,15 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "dreading",
-        finer: ["apprehensive", "daunted", "wary", "hesitant", "reluctant", "queasy"],
+        finer: ["sinking", "daunted", "wary", "reluctant", "queasy", "on eggshells"],
       },
       {
         word: "helpless",
-        finer: ["trapped", "cornered", "powerless", "defenseless", "desperate", "adrift"],
+        finer: ["trapped", "cornered", "powerless", "defenceless", "desperate", "adrift"],
       },
       {
         word: "confused",
-        finer: ["bewildered", "lost", "torn", "muddled", "blindsided", "thrown"],
+        finer: ["bewildered", "lost", "torn", "muddled", "blindsided", "flustered"],
       },
     ],
   },
@@ -99,19 +99,19 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "frazzled",
-        finer: ["overstimmed", "jangly", "grated", "wired", "twitchy", "buzzing"],
+        finer: ["overstimmed", "jangly", "scratchy", "wired", "twitchy", "crawly"],
       },
       {
         word: "shut down",
-        finer: ["frozen", "unresponsive", "withdrawn", "checked out", "walled off", "mute"],
+        finer: ["frozen", "gone dark", "withdrawn", "checked out", "walled off", "mute"],
       },
       {
         word: "burned out",
-        finer: ["used up", "hollow", "spent", "running dry", "worn thin", "threadbare"],
+        finer: ["wrung out", "hollow", "spent", "running dry", "worn thin", "threadbare"],
       },
       {
         word: "numb",
-        finer: ["flat", "blank", "distant", "detached", "bored", "unreal"],
+        finer: ["flat", "blank", "switched off", "detached", "bored", "unreal"],
       },
       {
         word: "drained",
@@ -126,27 +126,27 @@ export const WHEEL: WheelSector[] = [
     feelings: [
       {
         word: "down",
-        finer: ["low", "gloomy", "blue", "glum", "heavy", "somber"],
+        finer: ["low", "gloomy", "glum", "heavy", "teary", "joyless"],
       },
       {
         word: "grieving",
-        finer: ["bereft", "mourning", "heartbroken", "aching", "longing", "wistful"],
+        finer: ["bereft", "raw", "heartbroken", "aching", "longing", "wistful"],
       },
       {
         word: "lonely",
-        finer: ["isolated", "left out", "unseen", "unwanted", "homesick", "excluded"],
+        finer: ["isolated", "left out", "unseen", "unwanted", "homesick", "abandoned"],
       },
       {
         word: "disappointed",
-        finer: ["let down", "deflated", "disheartened", "discouraged", "dismayed", "crestfallen"],
+        finer: ["let down", "deflated", "underwhelmed", "discouraged", "dismayed", "downcast"],
       },
       {
         word: "ashamed",
-        finer: ["guilty", "embarrassed", "humiliated", "regretful", "remorseful", "mortified"],
+        finer: ["guilty", "embarrassed", "humiliated", "regretful", "sheepish", "mortified"],
       },
       {
         word: "despairing",
-        finer: ["hopeless", "worthless", "defeated", "despondent", "miserable", "empty"],
+        finer: ["bleak", "worthless", "defeated", "resigned", "anguished", "crushed"],
       },
     ],
   },
@@ -157,27 +157,27 @@ export const WHEEL: WheelSector[] = [
     feelings: [
       {
         word: "peaceful",
-        finer: ["serene", "tranquil", "still", "unhurried", "settled", "unruffled"],
+        finer: ["serene", "still", "unhurried", "hushed", "untroubled", "quiet"],
       },
       {
         word: "content",
-        finer: ["satisfied", "comfortable", "cozy", "fulfilled", "mellow", "snug"],
+        finer: ["satisfied", "comfortable", "cosy", "fulfilled", "mellow", "at home"],
       },
       {
         word: "relaxed",
-        finer: ["at ease", "loose", "unwound", "soothed", "refreshed", "rested"],
+        finer: ["at ease", "loose", "unwound", "soothed", "refreshed", "recharged"],
       },
       {
         word: "safe",
-        finer: ["secure", "protected", "sheltered", "held", "grounded", "steady"],
+        finer: ["settled", "protected", "sheltered", "held", "grounded", "steady"],
       },
       {
         word: "focused",
-        finer: ["absorbed", "engaged", "in flow", "clear", "sharp", "present"],
+        finer: ["locked in", "engaged", "in flow", "clear", "sharp", "present"],
       },
       {
         word: "curious",
-        finer: ["interested", "intrigued", "open", "wondering", "fascinated", "receptive"],
+        finer: ["keen", "intrigued", "open", "wondering", "fascinated", "drawn in"],
       },
     ],
   },
@@ -188,27 +188,27 @@ export const WHEEL: WheelSector[] = [
     feelings: [
       {
         word: "hopeful",
-        finer: ["optimistic", "encouraged", "inspired", "uplifted", "expectant", "heartened"],
+        finer: ["optimistic", "encouraged", "inspired", "uplifted", "buoyant", "heartened"],
       },
       {
         word: "excited",
-        finer: ["eager", "thrilled", "exhilarated", "pumped", "giddy", "elated"],
+        finer: ["eager", "thrilled", "exhilarated", "fired up", "giddy", "elated"],
       },
       {
         word: "playful",
-        finer: ["amused", "silly", "mischievous", "lighthearted", "tickled", "goofy"],
+        finer: ["amused", "silly", "mischievous", "lighthearted", "tickled", "cheeky"],
       },
       {
         word: "grateful",
-        finer: ["thankful", "blessed", "touched", "moved", "lucky", "humbled"],
+        finer: ["thankful", "blessed", "touched", "relieved", "lucky", "humbled"],
       },
       {
         word: "proud",
-        finer: ["accomplished", "confident", "capable", "triumphant", "strong", "bold"],
+        finer: ["accomplished", "confident", "capable", "triumphant", "chuffed", "bold"],
       },
       {
         word: "loving",
-        finer: ["affectionate", "tender", "warm", "adoring", "smitten", "caring"],
+        finer: ["affectionate", "tender", "warm", "adoring", "smitten", "doting"],
       },
     ],
   },

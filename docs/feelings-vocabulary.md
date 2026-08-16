@@ -62,6 +62,18 @@ fixes the chip metrics).
 - **Community vernacular is welcome** where it is the plainest label
   (`overstimmed`, `wired`, `foggy`, `checked out`), per the filings'
   preference for lived language over clinical terms.
+- **Review pass per branch** (#31 fit criterion for narrowing semantics):
+  each sector was independently reviewed against the rules *child = genuine
+  specialisation ("which kind of X?", never "which other word for X?")*,
+  *siblings mutually distinguishable*, and *plain British self-report
+  register*. The pass replaced ~40 words (thesaurus synonym clusters like
+  contemptuous/disdainful/scornful, sibling duplicates like
+  terrified/petrified and left out/excluded, Americanisms like
+  pumped/goofy/cozy) and surfaced `relieved`, previously missing entirely.
+  Era words flagged only for being mild intensity shades of their parent
+  (`low`, `tired`, `annoyed`, `worried`, `furious`, `overwhelmed`) were kept:
+  recognisably different intensity states are allowed gradations, and these
+  are the words the user actually reaches for.
 - **Hues.** Five sector hues carry over from era 2 unchanged. `overloaded`
   gets `#8a5fc8` (violet), chosen to match the relative luminance of the
   era-2 blue (`#4a6fdc`, L ≈ 0.18) so its contrast on light and dark grounds
@@ -97,15 +109,17 @@ Cores first. E2's six cores map: *peaceful* → `peaceful` (now a middle under
 | reflective | `calm > curious > wondering` | |
 | pensive | `sad > grieving > wistful` | thoughtful-sad shade |
 | trusting | `calm > safe` | |
+| tranquil | `calm > peaceful > serene` | dropped as a sibling synonym of serene |
+| secure | `calm > safe` | dropped as a synonym restatement of safe |
 | delighted | `happy` (core) | |
 | cheerful | `happy` (core) | synonym of the core, dropped |
 | enthusiastic | `happy > excited > eager` | |
-| energetic | `happy > excited > pumped` | |
+| energetic | `happy > excited > fired up` | |
 | lively | `happy > excited` | |
 | self-assured | `happy > proud > confident` | |
 | courageous | `happy > proud > bold` | |
 | brave | `happy > proud > bold` | |
-| determined | `happy > proud > strong` | |
+| determined | `happy > proud > confident` | |
 | valued | `happy > proud` | seen/validated by others |
 | appreciated | `happy > proud` | |
 | respected | `happy > proud` | |
@@ -121,6 +135,8 @@ Cores first. E2's six cores map: *peaceful* → `peaceful` (now a middle under
 | overwhelmed | identity — `overloaded > overwhelmed` | sector move from *scared* |
 | self-doubting | `afraid > insecure > unsure` | |
 | rejected | `sad > lonely > unwanted` | |
+| excluded | `sad > lonely > left out` | dropped as a sibling synonym of left out |
+| remorseful | `sad > ashamed > regretful` | dropped as a sibling synonym of regretful |
 | stuck | identity — `overloaded > drained > stuck` | sector move from *scared* |
 | drained | identity — `overloaded > drained` | sector move from *sad* |
 | weary | identity — `overloaded > drained > weary` | sector move from *sad* |
