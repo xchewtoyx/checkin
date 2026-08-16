@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>chip fit check — worst-case 12-char labels</title>
+<style>
+  :root { --ground:#faf9f7; --surface:#fff; --ink:#1f2328; --muted:#6b6f76; --line:#e4e1db; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { width: 360px; margin:0 auto; padding: 1.1rem 1.1rem 1.5rem; display:flex; flex-direction:column; gap:0.9rem; outline: 1px dashed #ccc; }
+  .row-label { font-size:0.72rem; color:var(--muted); margin:0 0 0.3rem; }
+  .chips { display:flex; flex-wrap:wrap; gap:0.4rem; }
+  .chip { --h:#888; border:1px solid color-mix(in oklab, var(--h) 38%, var(--line)); background:color-mix(in oklab, var(--h) 11%, var(--surface)); color:color-mix(in oklab, var(--h) 52%, var(--ink)); border-radius:999px; padding:0.5rem 0.8rem; font-size:0.95rem; font-weight:600; min-height:44px; display:flex; align-items:center; white-space:nowrap; }
+  .chip.tight { padding:0.4rem 0.55rem; font-size:0.85rem; }
+  .chips.grid3 { display:grid; grid-template-columns: repeat(3, 1fr); }
+  .chips.grid3 .chip { justify-content:center; text-align:center; white-space:normal; }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <p class="row-label">current chip CSS (0.95rem, 0.5rem/0.8rem padding), flex-wrap — 6× 12-char words</p>
+    <div class="chips">
+      <button class="chip" style="--h:#d64550">Disappointed</button>
+      <button class="chip" style="--h:#d64550">Lighthearted</button>
+      <button class="chip" style="--h:#d64550">Accomplished</button>
+      <button class="chip" style="--h:#d64550">Underwhelmed</button>
+      <button class="chip" style="--h:#d64550">Affectionate</button>
+      <button class="chip" style="--h:#d64550">Switched off</button>
+    </div>
+  </div>
+  <div>
+    <p class="row-label">tightened ladder-row CSS (0.85rem, 0.4rem/0.55rem padding), flex-wrap — same 6 words</p>
+    <div class="chips">
+      <button class="chip tight" style="--h:#4a6fdc">Disappointed</button>
+      <button class="chip tight" style="--h:#4a6fdc">Lighthearted</button>
+      <button class="chip tight" style="--h:#4a6fdc">Accomplished</button>
+      <button class="chip tight" style="--h:#4a6fdc">Underwhelmed</button>
+      <button class="chip tight" style="--h:#4a6fdc">Affectionate</button>
+      <button class="chip tight" style="--h:#4a6fdc">Switched off</button>
+    </div>
+  </div>
+  <div>
+    <p class="row-label">fallback: forced 3-column grid, tightened CSS, label wrap allowed — same 6 words</p>
+    <div class="chips grid3">
+      <button class="chip tight" style="--h:#2ba193">Disappointed</button>
+      <button class="chip tight" style="--h:#2ba193">Lighthearted</button>
+      <button class="chip tight" style="--h:#2ba193">Accomplished</button>
+      <button class="chip tight" style="--h:#2ba193">Underwhelmed</button>
+      <button class="chip tight" style="--h:#2ba193">Affectionate</button>
+      <button class="chip tight" style="--h:#2ba193">Switched off</button>
+    </div>
+  </div>
+</main>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderCheckinPage } from "../src/checkin-page";
-import { LABEL_BUDGET, WHEEL, sampleFeelings } from "../src/feelings-wheel";
+import { LABEL_BUDGET, WHEEL } from "../src/feelings-wheel";
 import { PromptRow } from "../src/store";
 
 const allWords = WHEEL.flatMap((s) => [
@@ -56,35 +56,7 @@ describe("taxonomy structure (issue #31)", () => {
   });
 });
 
-describe("sampleFeelings", () => {
-  it("draws two distinct words from each sector in wheel order", () => {
-    const picks = sampleFeelings("abc123");
-
-    expect(picks).toHaveLength(12);
-    expect(picks.map((p) => p.core)).toEqual(
-      WHEEL.flatMap((s) => [s.core, s.core]),
-    );
-    expect(new Set(picks.map((p) => p.word)).size).toBe(12);
-    for (const pick of picks) {
-      const sector = WHEEL.find((s) => s.core === pick.core);
-      const pool = sector?.feelings.flatMap((f) => [f.word, ...f.finer]) ?? [];
-      expect(pool).toContain(pick.word);
-    }
-  });
-
-  it("is deterministic per token and varies across tokens", () => {
-    expect(sampleFeelings("token-a")).toEqual(sampleFeelings("token-a"));
-
-    const words = (token: string) =>
-      sampleFeelings(token)
-        .map((p) => p.word)
-        .join(",");
-    const variants = new Set(["a1", "b2", "c3", "d4", "e5"].map(words));
-    expect(variants.size).toBeGreaterThan(1);
-  });
-});
-
-describe("renderCheckinPage", () => {
+describe("renderCheckinPage — progressive-disclosure ladder (#32)", () => {
   const prompt: PromptRow = {
     id: "prompt-2026-08-14-w0",
     scheduled_for: "2026-08-14T09:00:00.000Z",
@@ -97,20 +69,54 @@ describe("renderCheckinPage", () => {
   };
   const now = new Date("2026-08-14T10:00:00.000Z");
 
-  it("renders the token-seeded 12-chip grid", () => {
+  it("renders exactly the 6 cores in row 1, tinted by their own hue", () => {
     const html = renderCheckinPage(prompt, now);
 
-    expect(html.match(/data-feeling="/g)).toHaveLength(12);
-    for (const pick of sampleFeelings(prompt.response_token)) {
-      expect(html).toContain(`data-feeling="${pick.word}"`);
-      expect(html).toContain(`--h:${pick.hue}`);
+    const row0Match = html.match(/<div class="chips" id="chips-0"[^>]*>(.*?)<\/div>/s);
+    expect(row0Match).not.toBeNull();
+    const row0 = row0Match![1];
+
+    expect(row0.match(/data-word="/g)).toHaveLength(6);
+    for (const sector of WHEEL) {
+      expect(row0).toContain(`data-word="${sector.core}"`);
+      expect(row0).toContain(`--h:${sector.hue}`);
     }
+  });
+
+  it("renders rows 2 and 3 empty and hidden pre-JS", () => {
+    const html = renderCheckinPage(prompt, now);
+
+    expect(html).toMatch(/<section id="row-1" class="ladder-row">/);
+    expect(html).toMatch(/<section id="row-2" class="ladder-row">/);
+    expect(html).toContain('<div class="chips" id="chips-1" role="group" aria-label="More specific feelings"></div>');
+    expect(html).toContain('<div class="chips" id="chips-2" role="group" aria-label="Most specific feelings"></div>');
+  });
+
+  it("embeds the full taxonomy for client-side row reveal, with no new queries", () => {
+    const html = renderCheckinPage(prompt, now);
+
+    const allWords = WHEEL.flatMap((s) => [
+      s.core,
+      ...s.feelings.flatMap((f) => [f.word, ...f.finer]),
+    ]);
+    for (const word of allWords) {
+      expect(html).toContain(`"${word}"`);
+    }
+  });
+
+  it("renders an optional, unset-by-default confidence toggle", () => {
+    const html = renderCheckinPage(prompt, now);
+
+    expect(html).toContain('data-confidence="weak"');
+    expect(html).toContain('data-confidence="strong"');
+    expect(html.match(/data-confidence="weak" aria-pressed="false"/)).not.toBeNull();
+    expect(html.match(/data-confidence="strong" aria-pressed="false"/)).not.toBeNull();
   });
 
   it("renders the expired page for an unusable prompt", () => {
     const html = renderCheckinPage({ ...prompt, status: "expired" }, now);
 
     expect(html).toContain("This link has expired");
-    expect(html).not.toContain("data-feeling");
+    expect(html).not.toContain("data-word");
   });
 });

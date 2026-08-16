@@ -52,6 +52,8 @@ describe("export serialization", () => {
         prompt_id: "prompt-1",
         feeling: "good",
         intensity: 7,
+        note: null,
+        confidence: null,
         observed_at: "2026-08-13T10:00:00.000Z",
         submitted_at: "2026-08-13T10:01:00.000Z",
       },
@@ -60,5 +62,44 @@ describe("export serialization", () => {
     const parsed = JSON.parse(json);
     expect(Array.isArray(parsed)).toBe(true);
     expect(parsed[0].feeling).toBe("good");
+  });
+
+  it("carries note and confidence when set", () => {
+    const json = serializeResponses([
+      {
+        id: "response-2",
+        prompt_id: "prompt-2",
+        feeling: "irritated",
+        intensity: 5,
+        note: "before the meeting",
+        confidence: "strong",
+        observed_at: "2026-08-13T10:00:00.000Z",
+        submitted_at: "2026-08-13T10:01:00.000Z",
+      },
+    ]);
+
+    const parsed = JSON.parse(json);
+    expect(parsed[0].note).toBe("before the meeting");
+    expect(parsed[0].confidence).toBe("strong");
+  });
+
+  it("serializes note and confidence as null when unset", () => {
+    const json = serializeResponses([
+      {
+        id: "response-3",
+        prompt_id: "prompt-3",
+        feeling: "anxious: before the meeting",
+        intensity: 4,
+        note: null,
+        confidence: null,
+        observed_at: "2026-08-13T10:00:00.000Z",
+        submitted_at: "2026-08-13T10:01:00.000Z",
+      },
+    ]);
+
+    const parsed = JSON.parse(json);
+    expect(parsed[0].note).toBeNull();
+    expect(parsed[0].confidence).toBeNull();
+    expect(parsed[0].feeling).toBe("anxious: before the meeting");
   });
 });

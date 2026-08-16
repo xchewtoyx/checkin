@@ -16,11 +16,15 @@ export interface PromptRow {
   created_at: string;
 }
 
+export type Confidence = "weak" | "strong";
+
 export interface ResponseRow {
   id: string;
   prompt_id: string;
   feeling: string;
   intensity: number;
+  note: string | null;
+  confidence: Confidence | null;
   observed_at: string;
   submitted_at: string;
 }
@@ -117,11 +121,13 @@ export async function upsertResponse(
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO checkin_response (id, prompt_id, feeling, intensity, observed_at, submitted_at)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO checkin_response (id, prompt_id, feeling, intensity, note, confidence, observed_at, submitted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          feeling = excluded.feeling,
          intensity = excluded.intensity,
+         note = excluded.note,
+         confidence = excluded.confidence,
          observed_at = excluded.observed_at,
          submitted_at = excluded.submitted_at`,
     )
@@ -130,6 +136,8 @@ export async function upsertResponse(
       row.prompt_id,
       row.feeling,
       row.intensity,
+      row.note,
+      row.confidence,
       row.observed_at,
       row.submitted_at,
     )
@@ -157,7 +165,7 @@ export async function listResponses(
   to?: string,
 ): Promise<ResponseRow[]> {
   let query =
-    "SELECT id, prompt_id, feeling, intensity, observed_at, submitted_at FROM checkin_response";
+    "SELECT id, prompt_id, feeling, intensity, note, confidence, observed_at, submitted_at FROM checkin_response";
   const conditions: string[] = [];
   const bindings: string[] = [];
 
@@ -198,7 +206,7 @@ export async function listAllResponsesForExport(
 ): Promise<ExportedResponseRow[]> {
   const result = await db
     .prepare(
-      `SELECT id, prompt_id, feeling, intensity, observed_at, submitted_at
+      `SELECT id, prompt_id, feeling, intensity, note, confidence, observed_at, submitted_at
        FROM checkin_response
        ORDER BY observed_at ASC`,
     )

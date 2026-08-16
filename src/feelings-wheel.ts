@@ -12,9 +12,10 @@ export interface WheelSector {
   feelings: WheelFeeling[];
 }
 
-// Longest chip label the taxonomy may contain. Provisional until #32 fixes
-// the chip metrics; asserted by the structural test so a #32 revision that
-// tightens the budget fails loudly here rather than truncating in the UI.
+// Longest chip label the taxonomy may contain. Fixed by #32's chip-metrics
+// decision (docs/checkin-ladder.md §4: a 3-column ladder-row grid, measured
+// against this budget); asserted by the structural test so a future word
+// past 12 characters fails loudly here rather than truncating in the UI.
 export const LABEL_BUDGET = 12;
 
 // The 6×6×6 feelings taxonomy (issue #31): 6 cores × 6 middle words × 6
@@ -214,46 +215,3 @@ export const WHEEL: WheelSector[] = [
   },
 ];
 
-export interface SampledFeeling {
-  word: string;
-  core: string;
-  hue: string;
-}
-
-function fnv1a(input: string): number {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
-
-function mulberry32(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// Draws `perSector` words from each sector (middle and outer ring pooled
-// together), in wheel order. Seeded by the prompt token: each prompt gets a
-// fresh spread, but reloading the page never reshuffles it mid-decision.
-// Retires with the #32 progressive-disclosure ladder.
-export function sampleFeelings(token: string, perSector = 2): SampledFeeling[] {
-  const random = mulberry32(fnv1a(token));
-  const picks: SampledFeeling[] = [];
-  for (const sector of WHEEL) {
-    const pool = sector.feelings.flatMap((f) => [f.word, ...f.finer]);
-    for (let n = 0; n < perSector && pool.length > 0; n++) {
-      const index = Math.floor(random() * pool.length);
-      const [word] = pool.splice(index, 1);
-      picks.push({ word, core: sector.core, hue: sector.hue });
-    }
-  }
-  return picks;
-}

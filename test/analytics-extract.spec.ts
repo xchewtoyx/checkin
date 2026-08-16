@@ -71,14 +71,16 @@ async function seedPromptAndResponse(): Promise<void> {
 
   await env.DB.prepare(
     `INSERT INTO checkin_response
-     (id, prompt_id, feeling, intensity, observed_at, submitted_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+     (id, prompt_id, feeling, intensity, note, confidence, observed_at, submitted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       "response-test-1",
       "prompt-test-1",
       "calm",
       7,
+      "after a walk",
+      "weak",
       "2026-08-15T09:05:00.000Z",
       "2026-08-15T09:05:01.000Z",
     )
@@ -174,6 +176,13 @@ describe("analytics extract snapshot", () => {
     });
     expect(parsedPrompt).not.toHaveProperty("response_token");
     expect(parsedPrompt).not.toHaveProperty("notification_id");
+
+    const parsedResponse = JSON.parse((await gunzipText(responseBuffer)).trim());
+    expect(parsedResponse).toMatchObject({
+      id: "response-test-1",
+      note: "after a walk",
+      confidence: "weak",
+    });
 
     const manifestObject = await bucket.get(buildManifestObjectKey(slot));
     expect(manifestObject).not.toBeNull();

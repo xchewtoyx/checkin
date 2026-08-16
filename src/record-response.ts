@@ -1,17 +1,21 @@
 import { TOKEN_TTL_HOURS } from "./config";
 import { log } from "./logger";
 import {
+  Confidence,
   PromptRow,
   getPromptByToken,
   upsertResponse,
   updatePromptStatus,
 } from "./store";
 
+const CONFIDENCE_VALUES: Confidence[] = ["weak", "strong"];
+
 export interface RecordResponseInput {
   token: string;
   feeling: string;
   intensity: number;
   note?: string;
+  confidence?: string | null;
   now: Date;
 }
 
@@ -44,16 +48,21 @@ export async function recordResponse(
     return { ok: false, reason: "invalid" };
   }
 
-  const feeling = input.note?.trim()
-    ? `${input.feeling}: ${input.note.trim()}`
-    : input.feeling;
+  if (
+    input.confidence != null &&
+    !CONFIDENCE_VALUES.includes(input.confidence as Confidence)
+  ) {
+    return { ok: false, reason: "invalid" };
+  }
 
   const submittedAt = input.now.toISOString();
   await upsertResponse(db, {
     id: `response-${prompt.id}`,
     prompt_id: prompt.id,
-    feeling,
+    feeling: input.feeling,
     intensity: input.intensity,
+    note: input.note?.trim() || null,
+    confidence: (input.confidence as Confidence) ?? null,
     observed_at: prompt.sent_at ?? submittedAt,
     submitted_at: submittedAt,
   });

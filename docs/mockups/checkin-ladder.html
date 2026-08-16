@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>checkin — progressive-disclosure ladder (mockup for #32)</title>
+<style>
+  :root {
+    --ground: #faf9f7;
+    --surface: #ffffff;
+    --ink: #1f2328;
+    --muted: #6b6f76;
+    --line: #e4e1db;
+    --focus: #4a6fdc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #15171a;
+      --surface: #1d2025;
+      --ink: #e8eaed;
+      --muted: #9aa0a8;
+      --line: #2b2f36;
+      --focus: #7c96e8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 26rem;
+    margin: 0 auto;
+    padding: 1.1rem 1.1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+  h1 {
+    font-size: 1.55rem;
+    font-weight: 800;
+    margin: 0.1rem 0 0;
+    text-wrap: balance;
+  }
+  .group-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.45rem;
+  }
+  .ladder-row { display: none; }
+  .ladder-row.visible { display: block; }
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+  }
+  .chip {
+    --h: #888888;
+    appearance: none;
+    border: 1px solid color-mix(in oklab, var(--h) 38%, var(--line));
+    background: color-mix(in oklab, var(--h) 11%, var(--surface));
+    color: color-mix(in oklab, var(--h) 52%, var(--ink));
+    border-radius: 999px;
+    padding: 0.4rem 0.55rem;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-height: 44px;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.15;
+  }
+  .chip[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--h) 26%, var(--surface));
+    border-color: var(--h);
+    box-shadow: inset 0 0 0 1.5px var(--h);
+    color: color-mix(in oklab, var(--h) 62%, var(--ink));
+    font-weight: 800;
+  }
+  .note input {
+    width: 100%;
+    font: inherit;
+    font-size: 1rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 44px;
+  }
+  .note input::placeholder { color: var(--muted); }
+  .confidence-row { display: flex; align-items: center; gap: 0.6rem; }
+  .confidence-row .toggle { display: flex; gap: 0.4rem; }
+  .confidence-row button {
+    appearance: none;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    padding: 0.4rem 0.75rem;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .confidence-row button[aria-pressed="true"] {
+    border-color: var(--focus);
+    color: var(--ink);
+    background: color-mix(in oklab, var(--focus) 14%, var(--surface));
+    font-weight: 800;
+  }
+  .intensity-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.45rem; }
+  .intensity-head .hint { color: var(--muted); font-size: 0.82rem; }
+  .intensity {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.4rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .intensity button {
+    appearance: none;
+    font: inherit;
+    font-weight: 700;
+    min-height: 44px;
+    border-radius: 0.6rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .intensity.active button {
+    color: color-mix(in oklab, var(--h) 55%, var(--ink));
+    border-color: color-mix(in oklab, var(--h) 40%, var(--line));
+    background: color-mix(in oklab, var(--h) calc(4% + var(--i) * 5.5%), var(--surface));
+  }
+  .intensity button:disabled { cursor: not-allowed; }
+  .recorded {
+    display: none;
+    flex-direction: column;
+    gap: 0.9rem;
+    align-items: flex-start;
+    border: 1px solid color-mix(in oklab, var(--h, #888888) 40%, var(--line));
+    background: color-mix(in oklab, var(--h, #888888) 8%, var(--surface));
+    border-radius: 1rem;
+    padding: 1.1rem;
+  }
+  .recorded.open { display: flex; }
+  .recorded .word {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: color-mix(in oklab, var(--h) 60%, var(--ink));
+  }
+  .recorded .meta { color: var(--muted); font-size: 0.92rem; margin: 0; }
+  .recorded .change {
+    appearance: none;
+    font: inherit;
+    font-weight: 700;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0.5rem 1rem;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .meta-text { color: var(--muted); margin: 0; }
+  #status { color: var(--muted); margin: 0; min-height: 1.2em; }
+  :is(button, input):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .hidden { display: none !important; }
+  .note-banner {
+    background: color-mix(in oklab, var(--focus) 10%, var(--surface));
+    border: 1px dashed var(--focus);
+    border-radius: 0.6rem;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="note-banner">Mockup for <a href="https://github.com/xchewtoyx/checkin/issues/32">#32</a> — client-side only, nothing is submitted to a server. Real taxonomy data (258 words) from <code>src/feelings-wheel.ts</code>. Resize the window / use device toolbar to check the ≤360px fallback grid.</div>
+  <header>
+    <p class="eyebrow">check-in · thursday afternoon</p>
+    <h1>How are you?</h1>
+  </header>
+  <section id="row-0" class="ladder-row visible">
+    <p class="group-label" id="row-0-label">what feels closest?</p>
+    <div class="chips" id="chips-0" role="group" aria-label="Core feelings"></div>
+  </section>
+  <section id="row-1" class="ladder-row">
+    <p class="group-label" id="row-1-label">narrow it down</p>
+    <div class="chips" id="chips-1" role="group" aria-label="More specific feelings"></div>
+  </section>
+  <section id="row-2" class="ladder-row">
+    <p class="group-label" id="row-2-label">narrower still (optional)</p>
+    <div class="chips" id="chips-2" role="group" aria-label="Most specific feelings"></div>
+  </section>
+  <section class="note" id="form-note">
+    <input id="note" type="text" maxlength="200" placeholder="Add a note (optional)" aria-label="Optional note">
+  </section>
+  <section id="form-confidence">
+    <div class="confidence-row">
+      <p class="eyebrow" style="margin:0">confidence</p>
+      <div class="toggle" id="confidence-toggle" role="group" aria-label="Confidence (optional)">
+        <button type="button" data-confidence="weak" aria-pressed="false">weak</button>
+        <button type="button" data-confidence="strong" aria-pressed="false">strong</button>
+      </div>
+    </div>
+  </section>
+  <section id="form-intensity">
+    <div class="intensity-head">
+      <p class="eyebrow">intensity</p>
+      <span class="hint" id="intensity-hint">pick a feeling first</span>
+    </div>
+    <div class="intensity" id="intensity" role="group" aria-label="Intensity from 1 to 10"></div>
+  </section>
+  <section class="recorded" id="recorded">
+    <span class="word" id="recorded-word"></span>
+    <p class="meta" id="recorded-meta"></p>
+    <button class="change" id="recorded-change" type="button">Change answer</button>
+  </section>
+  <p id="status" role="status"></p>
+</main>
+<script>
+  var WHEEL =
+[
+  {
+    core: "angry",
+    hue: "#d64550",
+    valence: "unpleasant",
+    feelings: [
+      {
+        word: "irritated",
+        finer: ["annoyed", "impatient", "grumpy", "snappy", "tetchy", "prickly"],
+      },
+      {
+        word: "frustrated",
+        finer: ["blocked", "thwarted", "exasperated", "held up", "fed up", "hampered"],
+      },
+      {
+        word: "resentful",
+        finer: ["bitter", "aggrieved", "jealous", "sore", "used", "cheated"],
+      },
+      {
+        word: "hostile",
+        finer: ["furious", "seething", "fuming", "raging", "vengeful", "spiteful"],
+      },
+      {
+        word: "hurt",
+        finer: ["betrayed", "wronged", "stung", "insulted", "offended", "dismissed"],
+      },
+      {
+        word: "critical",
+        finer: ["scornful", "cynical", "disgusted", "unimpressed", "appalled", "judgy"],
+      },
+    ],
+  },
+  {
+    core: "afraid",
+    hue: "#e8871e",
+    valence: "unpleasant",
+    feelings: [
+      {
+        word: "anxious",
+        finer: ["worried", "uneasy", "nervous", "on edge", "jittery", "tense"],
+      },
+      {
+        word: "panicked",
+        finer: ["terrified", "breathless", "alarmed", "frantic", "shaky", "spooked"],
+      },
+      {
+        word: "insecure",
+        finer: ["inadequate", "unsure", "exposed", "unworthy", "small", "intimidated"],
+      },
+      {
+        word: "dreading",
+        finer: ["sinking", "daunted", "wary", "reluctant", "queasy", "on eggshells"],
+      },
+      {
+        word: "helpless",
+        finer: ["trapped", "cornered", "powerless", "defenceless", "desperate", "adrift"],
+      },
+      {
+        word: "confused",
+        finer: ["bewildered", "lost", "torn", "muddled", "blindsided", "flustered"],
+      },
+    ],
+  },
+  {
+    core: "overloaded",
+    hue: "#8a5fc8",
+    valence: "unpleasant",
+    feelings: [
+      {
+        word: "overwhelmed",
+        finer: ["flooded", "swamped", "maxed out", "buried", "stretched", "saturated"],
+      },
+      {
+        word: "frazzled",
+        finer: ["overstimmed", "jangly", "scratchy", "wired", "twitchy", "crawly"],
+      },
+      {
+        word: "shut down",
+        finer: ["frozen", "gone dark", "withdrawn", "checked out", "walled off", "mute"],
+      },
+      {
+        word: "burned out",
+        finer: ["wrung out", "hollow", "spent", "running dry", "worn thin", "threadbare"],
+      },
+      {
+        word: "numb",
+        finer: ["flat", "blank", "switched off", "detached", "bored", "unreal"],
+      },
+      {
+        word: "drained",
+        finer: ["tired", "exhausted", "weary", "sleepy", "foggy", "stuck"],
+      },
+    ],
+  },
+  {
+    core: "sad",
+    hue: "#4a6fdc",
+    valence: "unpleasant",
+    feelings: [
+      {
+        word: "down",
+        finer: ["low", "gloomy", "glum", "heavy", "teary", "joyless"],
+      },
+      {
+        word: "grieving",
+        finer: ["bereft", "raw", "heartbroken", "aching", "longing", "wistful"],
+      },
+      {
+        word: "lonely",
+        finer: ["isolated", "left out", "unseen", "unwanted", "homesick", "abandoned"],
+      },
+      {
+        word: "disappointed",
+        finer: ["let down", "deflated", "underwhelmed", "discouraged", "dismayed", "downcast"],
+      },
+      {
+        word: "ashamed",
+        finer: ["guilty", "embarrassed", "humiliated", "regretful", "sheepish", "mortified"],
+      },
+      {
+        word: "despairing",
+        finer: ["bleak", "worthless", "defeated", "resigned", "anguished", "crushed"],
+      },
+    ],
+  },
+  {
+    core: "calm",
+    hue: "#2ba193",
+    valence: "pleasant",
+    feelings: [
+      {
+        word: "peaceful",
+        finer: ["serene", "still", "unhurried", "hushed", "untroubled", "quiet"],
+      },
+      {
+        word: "content",
+        finer: ["satisfied", "comfortable", "cosy", "fulfilled", "mellow", "at home"],
+      },
+      {
+        word: "relaxed",
+        finer: ["at ease", "loose", "unwound", "soothed", "refreshed", "recharged"],
+      },
+      {
+        word: "safe",
+        finer: ["settled", "protected", "sheltered", "held", "grounded", "steady"],
+      },
+      {
+        word: "focused",
+        finer: ["locked in", "engaged", "in flow", "clear", "sharp", "present"],
+      },
+      {
+        word: "curious",
+        finer: ["keen", "intrigued", "open", "wondering", "fascinated", "drawn in"],
+      },
+    ],
+  },
+  {
+    core: "happy",
+    hue: "#d9a514",
+    valence: "pleasant",
+    feelings: [
+      {
+        word: "hopeful",
+        finer: ["optimistic", "encouraged", "inspired", "uplifted", "buoyant", "heartened"],
+      },
+      {
+        word: "excited",
+        finer: ["eager", "thrilled", "exhilarated", "fired up", "giddy", "elated"],
+      },
+      {
+        word: "playful",
+        finer: ["amused", "silly", "mischievous", "lighthearted", "tickled", "cheeky"],
+      },
+      {
+        word: "grateful",
+        finer: ["thankful", "blessed", "touched", "relieved", "lucky", "humbled"],
+      },
+      {
+        word: "proud",
+        finer: ["accomplished", "confident", "capable", "triumphant", "chuffed", "bold"],
+      },
+      {
+        word: "loving",
+        finer: ["affectionate", "tender", "warm", "adoring", "smitten", "doting"],
+      },
+    ],
+  },
+]  ;
+
+  (function () {
+    var depth = [null, null, null]; // selected word at [core, middle, outer]
+    var hueByDepth = ["#888888", "#888888", "#888888"];
+    var confidence = null;
+    var saving = false;
+
+    var rowEls = [document.getElementById("row-0"), document.getElementById("row-1"), document.getElementById("row-2")];
+    var chipEls = [document.getElementById("chips-0"), document.getElementById("chips-1"), document.getElementById("chips-2")];
+    var intensityWrap = document.getElementById("intensity");
+    var hint = document.getElementById("intensity-hint");
+    var statusEl = document.getElementById("status");
+    var confidenceToggle = document.getElementById("confidence-toggle");
+
+    var intensities = "";
+    for (var v = 1; v <= 10; v++) {
+      intensities += '<button type="button" style="--i:' + v + '" data-intensity="' + v + '" disabled>' + v + "</button>";
+    }
+    intensityWrap.innerHTML = intensities;
+    var intensityButtons = intensityWrap.querySelectorAll("button");
+
+    function titleCase(word) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
+
+    function renderRow(rowIndex, items, hue) {
+      var html = items
+        .map(function (word) {
+          return (
+            '<button type="button" class="chip" style="--h:' +
+            hue +
+            '" aria-pressed="false" data-word="' +
+            word +
+            '">' +
+            titleCase(word) +
+            "</button>"
+          );
+        })
+        .join("");
+      chipEls[rowIndex].innerHTML = html;
+    }
+
+    function clearRow(rowIndex) {
+      chipEls[rowIndex].innerHTML = "";
+      rowEls[rowIndex].classList.remove("visible");
+      depth[rowIndex] = null;
+    }
+
+    function coreSector(word) {
+      return WHEEL.filter(function (s) { return s.core === word; })[0];
+    }
+
+    function middleFeeling(sector, word) {
+      return sector.feelings.filter(function (f) { return f.word === word; })[0];
+    }
+
+    function deepestWord() {
+      if (depth[2]) return depth[2];
+      if (depth[1]) return depth[1];
+      return depth[0];
+    }
+
+    function updateIntensityState() {
+      var word = deepestWord();
+      var active = word !== null;
+      intensityWrap.classList.toggle("active", active);
+      if (active) {
+        var hue = hueByDepth[depth[2] ? 2 : depth[1] ? 1 : 0];
+        intensityWrap.style.setProperty("--h", hue);
+      }
+      hint.textContent = active ? "how strongly " + word + "?" : "pick a feeling first";
+      for (var j = 0; j < intensityButtons.length; j++) intensityButtons[j].disabled = !active;
+    }
+
+    // Row 0: cores, always populated
+    renderRow(0, WHEEL.map(function (s) { return s.core; }), "#888888");
+
+    chipEls[0].addEventListener("click", function (event) {
+      var target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      var word = target.getAttribute("data-word");
+      var sector = coreSector(word);
+
+      depth[0] = word;
+      hueByDepth[0] = sector.hue;
+      clearRow(1);
+      clearRow(2);
+
+      var all = chipEls[0].querySelectorAll(".chip");
+      for (var i = 0; i < all.length; i++) {
+        all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-word") === word));
+      }
+
+      renderRow(1, sector.feelings.map(function (f) { return f.word; }), sector.hue);
+      rowEls[1].classList.add("visible");
+      updateIntensityState();
+    });
+
+    chipEls[1].addEventListener("click", function (event) {
+      var target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      var word = target.getAttribute("data-word");
+      var sector = coreSector(depth[0]);
+      var feeling = middleFeeling(sector, word);
+
+      depth[1] = word;
+      hueByDepth[1] = sector.hue;
+      clearRow(2);
+
+      var all = chipEls[1].querySelectorAll(".chip");
+      for (var i = 0; i < all.length; i++) {
+        all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-word") === word));
+      }
+
+      renderRow(2, feeling.finer, sector.hue);
+      rowEls[2].classList.add("visible");
+      updateIntensityState();
+    });
+
+    chipEls[2].addEventListener("click", function (event) {
+      var target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      var word = target.getAttribute("data-word");
+      var sector = coreSector(depth[0]);
+
+      depth[2] = word;
+      hueByDepth[2] = sector.hue;
+
+      var all = chipEls[2].querySelectorAll(".chip");
+      for (var i = 0; i < all.length; i++) {
+        all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-word") === word));
+      }
+      updateIntensityState();
+    });
+
+    confidenceToggle.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      var value = target.getAttribute("data-confidence");
+      confidence = confidence === value ? null : value;
+      var all = confidenceToggle.querySelectorAll("button");
+      for (var i = 0; i < all.length; i++) {
+        all[i].setAttribute("aria-pressed", String(all[i].getAttribute("data-confidence") === confidence));
+      }
+    });
+
+    function setRecorded(recorded) {
+      ["row-0", "row-1", "row-2", "form-note", "form-confidence", "form-intensity"].forEach(function (id) {
+        document.getElementById(id).classList.toggle("hidden", recorded);
+      });
+      document.getElementById("recorded").classList.toggle("open", recorded);
+    }
+
+    intensityWrap.addEventListener("click", function (event) {
+      var target = event.target;
+      var word = deepestWord();
+      if (!(target instanceof HTMLButtonElement) || !word || saving) return;
+      var intensity = Number(target.getAttribute("data-intensity"));
+      saving = true;
+      statusEl.textContent = "Saving…";
+      setTimeout(function () {
+        saving = false;
+        statusEl.textContent = "";
+        var note = document.getElementById("note").value;
+        var recorded = document.getElementById("recorded");
+        recorded.style.setProperty("--h", intensityWrap.style.getPropertyValue("--h"));
+        document.getElementById("recorded-word").textContent = titleCase(word);
+        var meta = "Recorded · intensity " + intensity + " of 10";
+        if (confidence) meta += " · " + confidence + " confidence";
+        var pathLabel = [depth[0], depth[1], depth[2]].filter(Boolean).map(titleCase).join(" › ");
+        meta += " · " + pathLabel + " (" + (depth[2] ? 3 : depth[1] ? 2 : 1) + " taps deep)";
+        if (note.trim()) meta += ' · “' + note.trim() + '”';
+        document.getElementById("recorded-meta").textContent = meta;
+        setRecorded(true);
+      }, 250);
+    });
+
+    document.getElementById("recorded-change").addEventListener("click", function () {
+      setRecorded(false);
+    });
+  })();
+</script>
+</body>
+</html>
