@@ -9,6 +9,7 @@
     }
   },
   "enabledPlugins": {
+    "rgh-pre@rgh-plugins": true,
     "rgh-sme@rgh-plugins": true
   }
 }
