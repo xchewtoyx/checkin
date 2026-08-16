@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "rgh-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "xchewtoyx/rgh-market"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "rgh-sme@rgh-plugins": true
+  }
+}
