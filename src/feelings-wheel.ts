@@ -90,7 +90,7 @@ export const WHEEL: WheelSector[] = [
   },
   {
     core: "overloaded",
-    hue: "#8a5fc8",
+    hue: "#9d4f9e",
     valence: "unpleasant",
     feelings: [
       {

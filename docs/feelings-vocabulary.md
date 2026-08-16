@@ -75,9 +75,11 @@ fixes the chip metrics).
   recognisably different intensity states are allowed gradations, and these
   are the words the user actually reaches for.
 - **Hues.** Five sector hues carry over from era 2 unchanged. `overloaded`
-  gets `#8a5fc8` (violet), chosen to match the relative luminance of the
-  era-2 blue (`#4a6fdc`, L ≈ 0.18) so its contrast on light and dark grounds
-  is the same as an already-shipped hue.
+  gets `#9d4f9e` (plum): ≥ 3:1 against both light and dark grounds (5.2:1 /
+  3.4:1, the same league as the era-2 blue), and — unlike the
+  luminance-matched violet first considered — clearly separable from the
+  adjacent `sad` blue for protan/deutan vision (OKLab ΔE 10.5 protan,
+  16.2 normal, vs 3.5 / 9.6 for the violet).
 
 ## Era mapping
 
