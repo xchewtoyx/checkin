@@ -18,14 +18,17 @@ export interface WheelSector {
 // past 12 characters fails loudly here rather than truncating in the UI.
 export const LABEL_BUDGET = 12;
 
-// The 6×6×6 feelings taxonomy (issue #31, revised E4): 6 cores × 6 middle
+// The 6×6×6 feelings taxonomy (issue #31, revised E5): 6 cores × 6 middle
 // words × 6 outer words = 258 nodes, every word unique case-insensitively.
 // Willcox is the base, but the top level departs from it deliberately: the
 // "powerful" sector folds into happy/calm, freeing a core for "overloaded"
 // — the overwhelm / overstimulation / meltdown / captured-attention /
 // shutdown / depletion axis that generic wheels bury and that the rgh-pre
 // filings argue is first-class and distinct from fear and anger.
-// Vocabulary sources, the E4 revision rationale, and the era mapping for
+// E5 renames individual words to their Geoffrey Roberts wheel equivalents
+// where the two are genuine synonyms, so check-ins and therapy sessions
+// (which use the Roberts wheel) share a vocabulary without remapping.
+// Vocabulary sources, revision rationales, and the era mapping for
 // previously recorded words live in docs/feelings-vocabulary.md; per-word
 // descriptions live in docs/feelings-catalog.md.
 export const WHEEL: WheelSector[] = [
@@ -44,7 +47,7 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "resentful",
-        finer: ["bitter", "aggrieved", "jealous", "sore", "used", "cheated"],
+        finer: ["bitter", "indignant", "jealous", "sore", "used", "cheated"],
       },
       {
         word: "hostile",
@@ -52,11 +55,11 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "hurt",
-        finer: ["betrayed", "wronged", "stung", "insulted", "offended", "dismissed"],
+        finer: ["betrayed", "wronged", "stung", "disrespected", "offended", "dismissed"],
       },
       {
         word: "critical",
-        finer: ["scornful", "cynical", "disgusted", "unimpressed", "appalled", "judgy"],
+        finer: ["scornful", "sceptical", "disgusted", "unimpressed", "appalled", "judgmental"],
       },
     ],
   },
@@ -87,7 +90,7 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "confused",
-        finer: ["bewildered", "lost", "torn", "muddled", "blindsided", "flustered"],
+        finer: ["perplexed", "lost", "torn", "muddled", "blindsided", "flustered"],
       },
     ],
   },
@@ -98,7 +101,7 @@ export const WHEEL: WheelSector[] = [
     feelings: [
       {
         word: "overwhelmed",
-        finer: ["flooded", "swamped", "maxed out", "buried", "stretched", "literal"],
+        finer: ["flooded", "swamped", "maxed out", "buried", "pressured", "literal"],
       },
       {
         word: "overstimmed",
@@ -137,7 +140,7 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "lonely",
-        finer: ["isolated", "left out", "unseen", "unwanted", "homesick", "abandoned"],
+        finer: ["isolated", "excluded", "unseen", "rejected", "homesick", "abandoned"],
       },
       {
         word: "disappointed",
@@ -195,7 +198,7 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "excited",
-        finer: ["eager", "thrilled", "exhilarated", "fired up", "giddy", "elated"],
+        finer: ["eager", "thrilled", "exhilarated", "energetic", "giddy", "elated"],
       },
       {
         word: "playful",
@@ -207,7 +210,7 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "proud",
-        finer: ["accomplished", "confident", "capable", "triumphant", "chuffed", "bold"],
+        finer: ["successful", "confident", "capable", "triumphant", "chuffed", "courageous"],
       },
       {
         word: "loving",

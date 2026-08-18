@@ -1,6 +1,6 @@
 # Feelings catalog
 
-A short write-up for every word on the wheel (E4 vocabulary,
+A short write-up for every word on the wheel (E5 vocabulary,
 `src/feelings-wheel.ts`): what the word means here, and how to recognise
 it from the inside. It has two jobs:
 
@@ -100,7 +100,7 @@ still warm.
 - **bitter** — resentment that has soaked in and gone stale; the
   unfairness colours how you talk about the whole topic, not just the
   incident.
-- **aggrieved** — the fresh, specific sense of having been treated
+- **indignant** — the fresh, righteous sense of having been treated
   unfairly and having a case; you could state the wrong done to you in one
   sentence.
 - **jealous** — resentment aimed at someone having what you want — a
@@ -157,7 +157,7 @@ each time.
   uncorrected; you want it *acknowledged* as much as fixed.
 - **stung** — a sharp, fast hurt from a remark or act that got through
   your guard; small on paper, but it landed and it smarts.
-- **insulted** — your competence, character, or worth was disparaged,
+- **disrespected** — your competence, character, or worth was disparaged,
   directly or by implication, and the disrespect is the injury.
 - **offended** — something said or done crossed a line of respect or
   decency that matters to you; the reaction defends the line, not just
@@ -178,7 +178,7 @@ anything good about it.
 
 - **scornful** — active contempt: the object is beneath serious
   consideration and part of you enjoys saying so.
-- **cynical** — pre-emptive negative judgement about motives: assuming
+- **sceptical** — pre-emptive doubt about claims and motives: assuming
   self-interest, spin, or failure before evidence arrives. The tell is
   that good news gets discounted automatically.
 - **disgusted** — a visceral recoil — moral or physical — from something
@@ -189,9 +189,9 @@ anything good about it.
 - **appalled** — shocked *and* condemning: what you have just seen or
   learned is far below any acceptable standard and you can hardly credit
   it.
-- **judgy** — you notice yourself scoring people on things that are not
-  really your business, and being ungenerous about it. Self-aware word:
-  picking it is half admission.
+- **judgmental** — you notice yourself scoring people on things that are
+  not really your business, and being ungenerous about it. Self-aware
+  word: picking it is half admission.
 
 ---
 
@@ -337,7 +337,7 @@ unsettling.
 inability to summarise the situation; decisions deferred because the
 picture will not resolve.
 
-- **bewildered** — thoroughly unable to make sense of what is happening;
+- **perplexed** — thoroughly unable to make sense of what is happening;
   the situation has outrun your model entirely.
 - **lost** — without bearings in a task, plan, or life stretch: you do not
   know where you are in it or what the next step is.
@@ -388,8 +388,9 @@ lists and inputs blurring into a single mass.
   thing added will displace something or break something.
 - **buried** — so far under that you have lost sight of the top; effort
   now goes into digging, not progressing.
-- **stretched** — still coping, but with zero slack: everything is covered
-  thinly and one wobble will tear it. The early-warning word in this set.
+- **pressured** — still coping, but with zero slack: the demands press
+  from every side, everything is covered thinly, and one wobble will tear
+  it. The early-warning word in this set.
 - **literal** — nuance has gone offline: you notice yourself reading
   everything at face value, applying rules rigidly, missing tone and
   subtext you would normally catch. A capacity marker — subtlety is
@@ -629,12 +630,12 @@ you emptier than solitude; the sense that no one currently *gets* it.
 
 - **isolated** — practically cut off: circumstances (distance, schedule,
   illness) have removed access to your people.
-- **left out** — a specific exclusion: the plan, group, or conversation
+- **excluded** — a specific exclusion: the plan, group, or conversation
   happened and you were not in it.
 - **unseen** — present but not registered: contributions and feelings
   passing without acknowledgement; invisible in plain sight.
-- **unwanted** — the harsher read: not just overlooked but surplus — the
-  sense that your presence is not missed or desired.
+- **rejected** — the harsher read: not just overlooked but refused — the
+  sense that your presence, offer, or self was weighed and turned away.
 - **homesick** — displaced from your place and people; the ache points at
   a *where* as much as a who.
 - **abandoned** — someone who was supposed to stay went; the exit was
@@ -906,7 +907,7 @@ reasons; counting down *toward* something rather than away from it.
   is happening or confirmed.
 - **exhilarated** — the rush form: aliveness flooding in from speed,
   achievement, cold water, big news.
-- **fired up** — energised toward action: motivation burning visibly,
+- **energetic** — energised toward action: motivation and body both up,
   ready to charge at the thing.
 - **giddy** — excitement fizzing over into lightheadedness and laughter;
   slightly silly with it.
@@ -966,7 +967,7 @@ Willcox "powerful" sector lives here).
 **Signs:** standing straighter; wanting to show someone; self-talk
 crediting rather than discounting the win.
 
-- **accomplished** — a real thing got finished or achieved, and the
+- **successful** — a real thing got finished or achieved, and the
   completion is felt as fact, not fluke.
 - **confident** — forward-looking self-trust: believing your abilities
   will be sufficient for what is coming.
@@ -976,8 +977,8 @@ crediting rather than discounting the win.
   challenge, or struggle just won.
 - **chuffed** — the British register: quietly delighted with yourself or
   your luck, pleased as punch and slightly modest about it.
-- **bold** — courage in the pleasant key: willing to take the risk, say
-  the thing, make the move — and enjoying that willingness.
+- **courageous** — courage in the pleasant key: willing to take the risk,
+  say the thing, make the move — and enjoying that willingness.
 
 ### loving
 
