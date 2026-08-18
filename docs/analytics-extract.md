@@ -109,6 +109,30 @@ No source backfill is planned for either column, per the ELT posture (D3):
 a transform bug in how legacy rows are reinterpreted is fixed by re-running
 downstream against the landed raw data, never by re-extracting D1.
 
+### `checkin_response` schema evolution: `vocab_era`
+
+`migrations/0003_response_vocab_era.sql` adds one nullable column, additive
+per the rule above:
+
+- **`vocab_era`** (`TEXT`, nullable, `E1`…`En`) — the feelings-vocabulary
+  era ([`feelings-vocabulary.md`](feelings-vocabulary.md) § Eras) of the
+  check-in page that served the recorded word. The Worker stamps
+  `VOCAB_ERA` into the page at **render** time and the submission carries
+  it back, so the value describes the wheel the author actually chose from
+  — not the code deployed at submit time. This matters exactly at
+  vocabulary deploys: a page opened before the deploy and submitted after
+  it correctly records the *prior* era. On re-submission ("Change answer",
+  same page) the era is re-stamped with the page's value, consistent with
+  `feeling` being overwritten in place.
+  **Downstream mapping rule:** when `vocab_era` is non-`NULL`, seed
+  `dim_feeling` conformance from that era's mapping chain directly —
+  no deploy-time inference. `NULL` means the row predates stamping (or was
+  submitted from a page rendered by pre-stamp Worker code, per the same
+  no-timestamp-cutover caveat as `note` above): keep using the existing
+  deploy-date inference for those rows only. A malformed submitted value
+  is discarded to `NULL` at the write path (logged as
+  `vocab_era_discarded`), never stored.
+
 ## 5. Design decisions
 
 Triaged by reversibility, as in #1.

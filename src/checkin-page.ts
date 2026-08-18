@@ -1,4 +1,4 @@
-import { WHEEL } from "./feelings-wheel";
+import { VOCAB_ERA, WHEEL } from "./feelings-wheel";
 import { getLondonParts } from "./london-time";
 import { isPromptUsable } from "./record-response";
 import { PromptRow } from "./store";
@@ -300,6 +300,7 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
   </main>
   <script>
     var WHEEL = ${jsonForScript(WHEEL)};
+    var VOCAB_ERA = ${jsonForScript(VOCAB_ERA)};
     (function () {
       var depth = [null, null, null]; // selected word at [core, middle, outer]
       var hueByDepth = ["#888888", "#888888", "#888888"];
@@ -458,7 +459,7 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
         saving = true;
         statusEl.textContent = "Saving…";
         var note = document.getElementById("note").value;
-        var body = { feeling: feeling, intensity: intensity, note: note };
+        var body = { feeling: feeling, intensity: intensity, note: note, vocab_era: VOCAB_ERA };
         if (submittedConfidence) body.confidence = submittedConfidence;
         fetch(window.location.pathname, {
           method: "POST",

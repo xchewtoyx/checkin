@@ -12,6 +12,16 @@ not, the analytics transformation layer applies the synonym row from the
 tables below. Words from any era chain forward table by table (E2 → E3 →
 E4 → E5) until they land on a current node.
 
+Responses recorded after the `vocab_era` column landed
+(`migrations/0003_response_vocab_era.sql`) self-describe their era: the
+check-in page embeds `VOCAB_ERA` (exported from `src/feelings-wheel.ts`
+alongside `WHEEL`, and asserted against the era table below by the
+structural test) and the submission carries it back, so the stored era is
+that of the page the word was picked from even when a vocabulary deploy
+lands between open and submit. Rows with `vocab_era = NULL` predate
+stamping — map those by deploy date, as before. Details in
+[`analytics-extract.md`](analytics-extract.md).
+
 ## Eras
 
 | Era | Introduced | Vocabulary | Source |

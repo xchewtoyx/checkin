@@ -10,12 +10,18 @@ import {
 
 const CONFIDENCE_VALUES: Confidence[] = ["weak", "strong"];
 
+// Shape of the page-stamped vocabulary era (E1, E2, …). The era is
+// provenance metadata, not user data: a malformed value is dropped to NULL
+// (and logged) rather than rejecting the check-in that carries it.
+const VOCAB_ERA_PATTERN = /^E\d{1,3}$/;
+
 export interface RecordResponseInput {
   token: string;
   feeling: string;
   intensity: number;
   note?: string;
   confidence?: string | null;
+  vocabEra?: string | null;
   now: Date;
 }
 
@@ -55,6 +61,14 @@ export async function recordResponse(
     return { ok: false, reason: "invalid" };
   }
 
+  const vocabEra =
+    typeof input.vocabEra === "string" && VOCAB_ERA_PATTERN.test(input.vocabEra)
+      ? input.vocabEra
+      : null;
+  if (input.vocabEra != null && vocabEra === null) {
+    log("warn", "vocab_era_discarded", { prompt_id: prompt.id });
+  }
+
   const submittedAt = input.now.toISOString();
   await upsertResponse(db, {
     id: `response-${prompt.id}`,
@@ -63,6 +77,7 @@ export async function recordResponse(
     intensity: input.intensity,
     note: input.note?.trim() || null,
     confidence: (input.confidence as Confidence) ?? null,
+    vocab_era: vocabEra,
     observed_at: prompt.sent_at ?? submittedAt,
     submitted_at: submittedAt,
   });
