@@ -9,7 +9,8 @@ current taxonomy. The mapping is the conformance seed for `dim_feeling`
 ([checkin-analytics#1](https://github.com/xchewtoyx/checkin-analytics/issues/1)):
 where an old word survives as a node the mapping is identity; where it does
 not, the analytics transformation layer applies the synonym row from the
-tables below.
+tables below. Words from any era chain forward table by table (E2 → E3 →
+E4 → E5) until they land on a current node.
 
 ## Eras
 
@@ -18,7 +19,8 @@ tables below.
 | E1 | M1 (#4) | Flat 8-word list | `FEELINGS` in `src/config.ts` (removed in #12) |
 | E2 | #12 | Placeholder wheel, 114 words (6 cores × 6 middle × 2 finer) | `src/feelings-wheel.ts` before #31 |
 | E3 | #31 | 6×6×6 taxonomy, 258 words (6 cores × 6 middle × 6 outer) | `src/feelings-wheel.ts` before the overload rescan |
-| E4 | overload rescan (`claude/feelings-wheel-labels`) | Same 6×6×6 shape, 258 words; `overloaded` sector restructured | `src/feelings-wheel.ts` |
+| E4 | overload rescan (`claude/feelings-wheel-labels`) | Same 6×6×6 shape, 258 words; `overloaded` sector restructured | `src/feelings-wheel.ts` before the Roberts alignment |
+| E5 | Roberts alignment (`claude/roberts-wheel-alignment`) | Same 6×6×6 shape, 258 words; 15 words (one core) renamed to their Roberts-wheel equivalents | `src/feelings-wheel.ts` |
 
 ## The E3 taxonomy (issue #31)
 
@@ -160,6 +162,114 @@ Per-word descriptions and identification cues live in
   excludes hyphens and apostrophes, which ruled out `short-fused` and
   `can't stop`; `short fuse` and `compelled` stand in).
 
+## The E5 revision (Roberts wheel alignment)
+
+Therapy sessions use the Geoffrey Roberts feelings wheel (the version with
+British spellings — *sceptical*, *victimised*), so the two vocabularies are
+now used side by side. E5 renames individual words — including the
+`afraid` core, now `fearful` — to the Roberts word wherever the two are
+near-neighbours, so that a word said in session and a word recorded in a
+check-in are the same word. No structural change: same tree, same 258
+nodes, same parents.
+
+**The standing rule** (set in this revision, binding on future passes):
+where a published vocabulary word and an app word are near-neighbours and
+the published word has no clash on the wheel, the published word is
+preferred — register preferences, including the user's own stated
+preferences, do not outrank the published standard. Keeping the app word
+requires a strong, evidence-backed argument (a filing, a documented
+failure mode, a coverage loss), not taste. Several E3 review decisions
+had chosen between synonym pairs on register grounds alone (`left out`
+over `excluded`, `bold` for `courageous`, `small` for `inferior`,
+`stretched` for `pressured`); under this rule those ties flip to the
+Roberts word.
+
+The alignment stops where the evidence-backed departures begin. The
+taxonomy's structural departures from Roberts (and from Willcox) all
+stand: the `overloaded` core, the calm/happy split, no
+*surprised*/*disgusted*/*bad* cores, and no catch-all words (`stressed`,
+`bad`, `awful`). After E5, 68 of the Roberts wheel's 126 words are nodes
+here. The renames are tabled under
+[E4 → E5](#e4--e5-roberts-alignment-non-identity-rows) below.
+
+### Roberts words considered and not adopted
+
+Every remaining Roberts word was tested against the standing rule; each
+non-adoption below names its strong argument. Two arguments recur:
+
+- **Synonym of a parent or core, not of a slot** — a child must answer
+  "which kind of X?", never "another word for X?" (E3 fit criterion).
+  Rules out **frightened** (≈ the `fearful` core itself; `terrified`
+  anchors the panicked extreme), **inquisitive** (≈ its would-be parent
+  `curious`), **mad** and **scared** (≈ cores `angry`/`fearful`),
+  **interested** (≈ `curious`).
+- **The nearest slot is already held by a Roberts word** — swapping
+  trades one Roberts word for another, net alignment zero. Rules out
+  **creative** (`inspired`), **infuriated** (`furious`), **horrified**
+  (`appalled`), **revolted**/**nauseated** (`disgusted`), **ridiculed**
+  (`humiliated`), **empty** (`numb` holds the no-ache emptiness;
+  `joyless` is distinct — it still aches).
+
+Specific cases:
+
+- **grief / despair** — inflections of `grieving`/`despairing`, the same
+  lexeme in the wheel's adjectival register; not a vocabulary difference.
+- **remorseful** — E2 dropped it as a synonym of `regretful`, but the
+  catalogue has since given `regretful` the non-moral choice-regret
+  meaning ("the fork in the road"); remorseful implies wrongdoing and
+  would overlap its sibling `guilty` instead.
+- **startled** — `panicked > alarmed` (the acute jolt) and
+  `panicked > spooked` (the aftermath that won't stand down) split the
+  startle response deliberately; `startled` would blur into both.
+- **threatened** — `insecure > intimidated` names inhibition (shrinking
+  and self-censoring in a specific presence), not perceived danger; the
+  entry would not survive the swap. Roberts' *threatened* children
+  (nervous, exposed) are already nodes.
+- **violated** — would narrow `hurt > wronged` (the general
+  injustice-done-to-me state) to boundary-crossing, orphaning most of its
+  uses; `betrayed` already holds broken trust.
+- **shocked** — sector-ambiguous (shocked-angry, shocked-grief,
+  shocked-scared); `confused > blindsided` names the precise mechanism
+  (unwatched angle) and `panicked > alarmed` the fear-jolt.
+- **dismissive** — collides with the existing `hurt > dismissed` chip
+  (opposite direction of the same verb) and `critical > unimpressed`
+  names a different failure (quality shortfall, not refusal to engage).
+- **withdrawn / distant / numb-under-angry** — Roberts files withdrawal
+  under *Angry*; here withdrawal is `overloaded > shut down`, a core E3/E4
+  design thesis (shutdown is overload, not anger —
+  `failure-modes/shutdown`). At word level `checked out` beats
+  `withdrawn` because withdrawn connotes chosen social distancing —
+  inviting exactly the sulking misread the filing warns against.
+- **depressed** — clinical register avoided throughout; the
+  burnout-is-not-depression distinction
+  (`telemetry-state/four-autistic-stress-state-signatures`) depends on not
+  offering it as a chip.
+- **stressed / bad / awful** — catch-alls, deliberately not nodes (see E3
+  design decisions; `telemetry-state/alexithymia`).
+- **bored** — still no slot after the E4 merge; the standing note
+  ("revisit if reached for") is unchanged.
+- **unfocused** — `drained > foggy` is the filing-sourced brain-fog word
+  (`telemetry-state/brain-fog-as-state-signal`).
+- **out of control** — three words / 14 characters, fails the word-form
+  rules.
+- **accepted / valued / respected** (the Roberts *Accepted* branch) —
+  other-directed validation was folded into `proud` in E3; no free slot in
+  that branch without dropping a self-achievement distinction. The gap is
+  known: a check-in for "seen/valued by others" has no pleasant node.
+- **vulnerable / fragile / victimised / persecuted** — no slot-level
+  synonyms exist (`exposed`, `raw`, `used`, `wronged` each hold distinct
+  meanings); a genuine coverage gap, candidate for a future revision
+  rather than a displacement.
+- **free / intimate / sensitive / awe / amazed / astonished / aroused** —
+  further genuine gaps (liberation, relational closeness, positive
+  wonder) with no near-neighbour to rename; noted for a future pass, not
+  forced into occupied slots.
+- **remaining surprise/disgust vocabulary** (apathetic, indifferent,
+  detestable, disillusioned, disapproving, repelled, rushed, busy…) — no
+  surprise or disgust sector by design, and no slot-level near-neighbour;
+  `critical > disgusted`/`appalled` carry the judging register,
+  `shut down > checked out`/`numb` the switched-off states.
+
 ## Era mapping
 
 Every word offered in earlier eras maps to its nearest node in the current
@@ -263,6 +373,33 @@ finer), `wired` (`frazzled` finer → `stuck` finer), `on edge`
 | worn thin | `overloaded > drained > burned out` | |
 | threadbare | `overloaded > drained > burned out` | |
 | locked in | `calm > focused > absorbed` | ambiguity with the new `stuck` middle |
+
+### E4 → E5 (Roberts alignment): non-identity rows
+
+Pure renames — every row keeps its slot, parent, and catalogue meaning;
+the recorded word changes to the Roberts-wheel synonym. Earlier-era words
+that mapped to the left column chain through (e.g. E2 `excluded` → E3/E4
+`left out` → E5 `excluded`, an identity round-trip; likewise E2
+`pressured`, `rejected`, `courageous`, `brave`, `successful`,
+`energetic`).
+
+| E4 word | E5 node | Note |
+|---------|---------|------|
+| afraid | `fearful` (core) | pure synonym; four of six cores now match Roberts labels |
+| aggrieved | `angry > resentful > indignant` | |
+| insulted | `angry > hurt > disrespected` | catalogue already defined the injury as disrespect |
+| cynical | `angry > critical > sceptical` | entry generalised from motives to claims-and-motives |
+| judgy | `angry > critical > judgmental` | slang → standard form |
+| bewildered | `fearful > confused > perplexed` | |
+| small | `fearful > insecure > inferior` | same spoke as Roberts (*Insecure > Inferior*) |
+| reluctant | `fearful > dreading > hesitant` | Roberts files hesitant under *Repelled*; the word, not the placement, is what aligns |
+| stretched | `overloaded > overwhelmed > pressured` | reverses the E2 `pressured` → `stretched` mapping |
+| left out | `sad > lonely > excluded` | reverses the E3 drop of `excluded` |
+| unwanted | `sad > lonely > rejected` | reverses the E2 `rejected` → `unwanted` mapping |
+| fired up | `happy > excited > energetic` | reverses the E2 `energetic` → `fired up` mapping |
+| elated | `happy > excited > joyful` | Roberts files joyful under *Content*; here it keeps elated's peak slot |
+| accomplished | `happy > proud > successful` | reverses the E2 `successful` → `accomplished` mapping |
+| bold | `happy > proud > courageous` | reverses the E2 `courageous` → `bold` mapping |
 
 ## Wiki references
 
