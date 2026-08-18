@@ -18,14 +18,16 @@ export interface WheelSector {
 // past 12 characters fails loudly here rather than truncating in the UI.
 export const LABEL_BUDGET = 12;
 
-// The 6×6×6 feelings taxonomy (issue #31): 6 cores × 6 middle words × 6
-// outer words = 258 nodes, every word unique case-insensitively. Willcox is
-// the base, but the top level departs from it deliberately: the "powerful"
-// sector folds into happy/calm, freeing a core for "overloaded" — the
-// overwhelm / shutdown / burnout / numb / drained axis that generic wheels
-// bury and that the rgh-pre filings argue is first-class and distinct from
-// fear. Vocabulary sources and the era mapping for previously recorded
-// words live in docs/feelings-vocabulary.md.
+// The 6×6×6 feelings taxonomy (issue #31, revised E4): 6 cores × 6 middle
+// words × 6 outer words = 258 nodes, every word unique case-insensitively.
+// Willcox is the base, but the top level departs from it deliberately: the
+// "powerful" sector folds into happy/calm, freeing a core for "overloaded"
+// — the overwhelm / overstimulation / meltdown / captured-attention /
+// shutdown / depletion axis that generic wheels bury and that the rgh-pre
+// filings argue is first-class and distinct from fear and anger.
+// Vocabulary sources, the E4 revision rationale, and the era mapping for
+// previously recorded words live in docs/feelings-vocabulary.md; per-word
+// descriptions live in docs/feelings-catalog.md.
 export const WHEEL: WheelSector[] = [
   {
     core: "angry",
@@ -34,7 +36,7 @@ export const WHEEL: WheelSector[] = [
     feelings: [
       {
         word: "irritated",
-        finer: ["annoyed", "impatient", "grumpy", "snappy", "tetchy", "prickly"],
+        finer: ["annoyed", "impatient", "grumpy", "snappy", "huffy", "prickly"],
       },
       {
         word: "frustrated",
@@ -65,7 +67,7 @@ export const WHEEL: WheelSector[] = [
     feelings: [
       {
         word: "anxious",
-        finer: ["worried", "uneasy", "nervous", "on edge", "jittery", "tense"],
+        finer: ["worried", "uneasy", "nervous", "keyed up", "jittery", "tense"],
       },
       {
         word: "panicked",
@@ -96,27 +98,27 @@ export const WHEEL: WheelSector[] = [
     feelings: [
       {
         word: "overwhelmed",
-        finer: ["flooded", "swamped", "maxed out", "buried", "stretched", "saturated"],
+        finer: ["flooded", "swamped", "maxed out", "buried", "stretched", "literal"],
       },
       {
-        word: "frazzled",
-        finer: ["overstimmed", "jangly", "scratchy", "wired", "twitchy", "crawly"],
+        word: "overstimmed",
+        finer: ["rattled", "jarred", "frayed", "buzzing", "twitchy", "too much"],
+      },
+      {
+        word: "boiling over",
+        finer: ["meltdown", "simmering", "wound up", "on edge", "tetchy", "short fuse"],
+      },
+      {
+        word: "stuck",
+        finer: ["hyperfocus", "wired", "looping", "ruminating", "obsessing", "compelled"],
       },
       {
         word: "shut down",
-        finer: ["frozen", "gone dark", "withdrawn", "checked out", "walled off", "mute"],
-      },
-      {
-        word: "burned out",
-        finer: ["wrung out", "hollow", "spent", "running dry", "worn thin", "threadbare"],
-      },
-      {
-        word: "numb",
-        finer: ["flat", "blank", "switched off", "detached", "bored", "unreal"],
+        finer: ["frozen", "numb", "blank", "checked out", "mute", "unreal"],
       },
       {
         word: "drained",
-        finer: ["tired", "exhausted", "weary", "sleepy", "foggy", "stuck"],
+        finer: ["tired", "exhausted", "weary", "sleepy", "foggy", "burned out"],
       },
     ],
   },
@@ -174,7 +176,7 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "focused",
-        finer: ["locked in", "engaged", "in flow", "clear", "sharp", "present"],
+        finer: ["absorbed", "engaged", "in flow", "clear", "sharp", "present"],
       },
       {
         word: "curious",

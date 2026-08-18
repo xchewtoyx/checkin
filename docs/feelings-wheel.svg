@@ -12,8 +12,8 @@
 <text transform="rotate(-85.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">grumpy</text>
 <path d="M49.50,-565.84 A568,568 0 0 1 65.94,-564.16 L43.19,-369.48 A372,372 0 0 0 32.42,-370.58 Z" fill="#f1c0c4" stroke="#fcfcfb" stroke-width="1.5"><title>angry &gt; irritated &gt; snappy</title></path>
 <text transform="rotate(-84.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">snappy</text>
-<path d="M65.94,-564.16 A568,568 0 0 1 82.32,-562.00 L53.91,-368.07 A372,372 0 0 0 43.19,-369.48 Z" fill="#f1c0c4" stroke="#fcfcfb" stroke-width="1.5"><title>angry &gt; irritated &gt; tetchy</title></path>
-<text transform="rotate(-82.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">tetchy</text>
+<path d="M65.94,-564.16 A568,568 0 0 1 82.32,-562.00 L53.91,-368.07 A372,372 0 0 0 43.19,-369.48 Z" fill="#f1c0c4" stroke="#fcfcfb" stroke-width="1.5"><title>angry &gt; irritated &gt; huffy</title></path>
+<text transform="rotate(-82.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">huffy</text>
 <path d="M82.32,-562.00 A568,568 0 0 1 98.63,-559.37 L64.60,-366.35 A372,372 0 0 0 53.91,-368.07 Z" fill="#f1c0c4" stroke="#fcfcfb" stroke-width="1.5"><title>angry &gt; irritated &gt; prickly</title></path>
 <text transform="rotate(-80.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">prickly</text>
 <path d="M64.60,-366.35 A372,372 0 0 1 127.23,-349.57 L80.37,-220.83 A235,235 0 0 0 40.81,-231.43 Z" fill="#e68c93" stroke="#fcfcfb" stroke-width="2"><title>angry &gt; frustrated</title></path>
@@ -96,8 +96,8 @@
 <text transform="rotate(-27.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">uneasy</text>
 <path d="M507.58,-254.92 A568,568 0 0 1 514.78,-240.05 L337.15,-157.21 A372,372 0 0 0 332.43,-166.95 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; nervous</title></path>
 <text transform="rotate(-25.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">nervous</text>
-<path d="M514.78,-240.05 A568,568 0 0 1 521.55,-224.97 L341.58,-147.34 A372,372 0 0 0 337.15,-157.21 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; on edge</title></path>
-<text transform="rotate(-24.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">on edge</text>
+<path d="M514.78,-240.05 A568,568 0 0 1 521.55,-224.97 L341.58,-147.34 A372,372 0 0 0 337.15,-157.21 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; keyed up</title></path>
+<text transform="rotate(-24.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">keyed up</text>
 <path d="M521.55,-224.97 A568,568 0 0 1 527.87,-209.71 L345.72,-137.34 A372,372 0 0 0 341.58,-147.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; jittery</title></path>
 <text transform="rotate(-22.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">jittery</text>
 <path d="M527.87,-209.71 A568,568 0 0 1 533.75,-194.27 L349.57,-127.23 A372,372 0 0 0 345.72,-137.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; tense</title></path>
@@ -186,63 +186,63 @@
 <text transform="rotate(35.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">buried</text>
 <path d="M455.61,339.19 A568,568 0 0 1 445.55,352.29 L291.80,230.73 A372,372 0 0 0 298.39,222.14 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overwhelmed &gt; stretched</title></path>
 <text transform="rotate(37.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">stretched</text>
-<path d="M445.55,352.29 A568,568 0 0 1 435.11,365.10 L284.97,239.12 A372,372 0 0 0 291.80,230.73 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overwhelmed &gt; saturated</title></path>
-<text transform="rotate(39.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">saturated</text>
-<path d="M284.97,239.12 A372,372 0 0 1 239.12,284.97 L151.06,180.02 A235,235 0 0 0 180.02,151.06 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; frazzled</title></path>
-<text transform="rotate(45.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">frazzled</text>
-<path d="M435.11,365.10 A568,568 0 0 1 424.31,377.60 L277.89,247.30 A372,372 0 0 0 284.97,239.12 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; frazzled &gt; overstimmed</title></path>
-<text transform="rotate(40.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">overstimmed</text>
-<path d="M424.31,377.60 A568,568 0 0 1 413.15,389.79 L270.58,255.28 A372,372 0 0 0 277.89,247.30 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; frazzled &gt; jangly</title></path>
-<text transform="rotate(42.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">jangly</text>
-<path d="M413.15,389.79 A568,568 0 0 1 401.64,401.64 L263.04,263.04 A372,372 0 0 0 270.58,255.28 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; frazzled &gt; scratchy</title></path>
-<text transform="rotate(44.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">scratchy</text>
-<path d="M401.64,401.64 A568,568 0 0 1 389.79,413.15 L255.28,270.58 A372,372 0 0 0 263.04,263.04 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; frazzled &gt; wired</title></path>
-<text transform="rotate(45.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">wired</text>
-<path d="M389.79,413.15 A568,568 0 0 1 377.60,424.31 L247.30,277.89 A372,372 0 0 0 255.28,270.58 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; frazzled &gt; twitchy</title></path>
+<path d="M445.55,352.29 A568,568 0 0 1 435.11,365.10 L284.97,239.12 A372,372 0 0 0 291.80,230.73 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overwhelmed &gt; literal</title></path>
+<text transform="rotate(39.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">literal</text>
+<path d="M284.97,239.12 A372,372 0 0 1 239.12,284.97 L151.06,180.02 A235,235 0 0 0 180.02,151.06 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; overstimmed</title></path>
+<text transform="rotate(45.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">overstimmed</text>
+<path d="M435.11,365.10 A568,568 0 0 1 424.31,377.60 L277.89,247.30 A372,372 0 0 0 284.97,239.12 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overstimmed &gt; rattled</title></path>
+<text transform="rotate(40.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">rattled</text>
+<path d="M424.31,377.60 A568,568 0 0 1 413.15,389.79 L270.58,255.28 A372,372 0 0 0 277.89,247.30 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overstimmed &gt; jarred</title></path>
+<text transform="rotate(42.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">jarred</text>
+<path d="M413.15,389.79 A568,568 0 0 1 401.64,401.64 L263.04,263.04 A372,372 0 0 0 270.58,255.28 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overstimmed &gt; frayed</title></path>
+<text transform="rotate(44.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">frayed</text>
+<path d="M401.64,401.64 A568,568 0 0 1 389.79,413.15 L255.28,270.58 A372,372 0 0 0 263.04,263.04 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overstimmed &gt; buzzing</title></path>
+<text transform="rotate(45.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">buzzing</text>
+<path d="M389.79,413.15 A568,568 0 0 1 377.60,424.31 L247.30,277.89 A372,372 0 0 0 255.28,270.58 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overstimmed &gt; twitchy</title></path>
 <text transform="rotate(47.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">twitchy</text>
-<path d="M377.60,424.31 A568,568 0 0 1 365.10,435.11 L239.12,284.97 A372,372 0 0 0 247.30,277.89 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; frazzled &gt; crawly</title></path>
-<text transform="rotate(49.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">crawly</text>
-<path d="M239.12,284.97 A372,372 0 0 1 186.00,322.16 L117.50,203.52 A235,235 0 0 0 151.06,180.02 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; shut down</title></path>
-<text transform="rotate(55.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">shut down</text>
-<path d="M365.10,435.11 A568,568 0 0 1 352.29,445.55 L230.73,291.80 A372,372 0 0 0 239.12,284.97 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; frozen</title></path>
-<text transform="rotate(50.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">frozen</text>
-<path d="M352.29,445.55 A568,568 0 0 1 339.19,455.61 L222.14,298.39 A372,372 0 0 0 230.73,291.80 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; gone dark</title></path>
-<text transform="rotate(52.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">gone dark</text>
-<path d="M339.19,455.61 A568,568 0 0 1 325.79,465.28 L213.37,304.72 A372,372 0 0 0 222.14,298.39 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; withdrawn</title></path>
-<text transform="rotate(54.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">withdrawn</text>
-<path d="M325.79,465.28 A568,568 0 0 1 312.12,474.56 L204.42,310.80 A372,372 0 0 0 213.37,304.72 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; checked out</title></path>
-<text transform="rotate(55.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">checked out</text>
-<path d="M312.12,474.56 A568,568 0 0 1 298.19,483.43 L195.29,316.62 A372,372 0 0 0 204.42,310.80 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; walled off</title></path>
-<text transform="rotate(57.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">walled off</text>
-<path d="M298.19,483.43 A568,568 0 0 1 284.00,491.90 L186.00,322.16 A372,372 0 0 0 195.29,316.62 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; mute</title></path>
-<text transform="rotate(59.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">mute</text>
-<path d="M186.00,322.16 A372,372 0 0 1 127.23,349.57 L80.37,220.83 A235,235 0 0 0 117.50,203.52 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; burned out</title></path>
-<text transform="rotate(65.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">burned out</text>
-<path d="M284.00,491.90 A568,568 0 0 1 269.57,499.95 L176.55,327.43 A372,372 0 0 0 186.00,322.16 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; burned out &gt; wrung out</title></path>
-<text transform="rotate(60.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">wrung out</text>
-<path d="M269.57,499.95 A568,568 0 0 1 254.92,507.58 L166.95,332.43 A372,372 0 0 0 176.55,327.43 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; burned out &gt; hollow</title></path>
-<text transform="rotate(62.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">hollow</text>
-<path d="M254.92,507.58 A568,568 0 0 1 240.05,514.78 L157.21,337.15 A372,372 0 0 0 166.95,332.43 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; burned out &gt; spent</title></path>
-<text transform="rotate(64.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">spent</text>
-<path d="M240.05,514.78 A568,568 0 0 1 224.97,521.55 L147.34,341.58 A372,372 0 0 0 157.21,337.15 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; burned out &gt; running dry</title></path>
-<text transform="rotate(65.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">running dry</text>
-<path d="M224.97,521.55 A568,568 0 0 1 209.71,527.87 L137.34,345.72 A372,372 0 0 0 147.34,341.58 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; burned out &gt; worn thin</title></path>
-<text transform="rotate(67.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">worn thin</text>
-<path d="M209.71,527.87 A568,568 0 0 1 194.27,533.75 L127.23,349.57 A372,372 0 0 0 137.34,345.72 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; burned out &gt; threadbare</title></path>
-<text transform="rotate(69.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">threadbare</text>
-<path d="M127.23,349.57 A372,372 0 0 1 64.60,366.35 L40.81,231.43 A235,235 0 0 0 80.37,220.83 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; numb</title></path>
-<text transform="rotate(75.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">numb</text>
-<path d="M194.27,533.75 A568,568 0 0 1 178.66,539.17 L117.01,353.12 A372,372 0 0 0 127.23,349.57 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; numb &gt; flat</title></path>
-<text transform="rotate(70.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">flat</text>
-<path d="M178.66,539.17 A568,568 0 0 1 162.90,544.14 L106.69,356.37 A372,372 0 0 0 117.01,353.12 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; numb &gt; blank</title></path>
-<text transform="rotate(72.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">blank</text>
-<path d="M162.90,544.14 A568,568 0 0 1 147.01,548.65 L96.28,359.32 A372,372 0 0 0 106.69,356.37 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; numb &gt; switched off</title></path>
-<text transform="rotate(74.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">switched off</text>
-<path d="M147.01,548.65 A568,568 0 0 1 130.99,552.69 L85.79,361.97 A372,372 0 0 0 96.28,359.32 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; numb &gt; detached</title></path>
-<text transform="rotate(75.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">detached</text>
-<path d="M130.99,552.69 A568,568 0 0 1 114.86,556.27 L75.22,364.31 A372,372 0 0 0 85.79,361.97 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; numb &gt; bored</title></path>
-<text transform="rotate(77.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">bored</text>
-<path d="M114.86,556.27 A568,568 0 0 1 98.63,559.37 L64.60,366.35 A372,372 0 0 0 75.22,364.31 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; numb &gt; unreal</title></path>
+<path d="M377.60,424.31 A568,568 0 0 1 365.10,435.11 L239.12,284.97 A372,372 0 0 0 247.30,277.89 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; overstimmed &gt; too much</title></path>
+<text transform="rotate(49.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">too much</text>
+<path d="M239.12,284.97 A372,372 0 0 1 186.00,322.16 L117.50,203.52 A235,235 0 0 0 151.06,180.02 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; boiling over</title></path>
+<text transform="rotate(55.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">boiling over</text>
+<path d="M365.10,435.11 A568,568 0 0 1 352.29,445.55 L230.73,291.80 A372,372 0 0 0 239.12,284.97 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; boiling over &gt; meltdown</title></path>
+<text transform="rotate(50.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">meltdown</text>
+<path d="M352.29,445.55 A568,568 0 0 1 339.19,455.61 L222.14,298.39 A372,372 0 0 0 230.73,291.80 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; boiling over &gt; simmering</title></path>
+<text transform="rotate(52.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">simmering</text>
+<path d="M339.19,455.61 A568,568 0 0 1 325.79,465.28 L213.37,304.72 A372,372 0 0 0 222.14,298.39 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; boiling over &gt; wound up</title></path>
+<text transform="rotate(54.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">wound up</text>
+<path d="M325.79,465.28 A568,568 0 0 1 312.12,474.56 L204.42,310.80 A372,372 0 0 0 213.37,304.72 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; boiling over &gt; on edge</title></path>
+<text transform="rotate(55.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">on edge</text>
+<path d="M312.12,474.56 A568,568 0 0 1 298.19,483.43 L195.29,316.62 A372,372 0 0 0 204.42,310.80 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; boiling over &gt; tetchy</title></path>
+<text transform="rotate(57.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">tetchy</text>
+<path d="M298.19,483.43 A568,568 0 0 1 284.00,491.90 L186.00,322.16 A372,372 0 0 0 195.29,316.62 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; boiling over &gt; short fuse</title></path>
+<text transform="rotate(59.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">short fuse</text>
+<path d="M186.00,322.16 A372,372 0 0 1 127.23,349.57 L80.37,220.83 A235,235 0 0 0 117.50,203.52 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; stuck</title></path>
+<text transform="rotate(65.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">stuck</text>
+<path d="M284.00,491.90 A568,568 0 0 1 269.57,499.95 L176.55,327.43 A372,372 0 0 0 186.00,322.16 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; stuck &gt; hyperfocus</title></path>
+<text transform="rotate(60.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">hyperfocus</text>
+<path d="M269.57,499.95 A568,568 0 0 1 254.92,507.58 L166.95,332.43 A372,372 0 0 0 176.55,327.43 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; stuck &gt; wired</title></path>
+<text transform="rotate(62.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">wired</text>
+<path d="M254.92,507.58 A568,568 0 0 1 240.05,514.78 L157.21,337.15 A372,372 0 0 0 166.95,332.43 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; stuck &gt; looping</title></path>
+<text transform="rotate(64.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">looping</text>
+<path d="M240.05,514.78 A568,568 0 0 1 224.97,521.55 L147.34,341.58 A372,372 0 0 0 157.21,337.15 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; stuck &gt; ruminating</title></path>
+<text transform="rotate(65.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">ruminating</text>
+<path d="M224.97,521.55 A568,568 0 0 1 209.71,527.87 L137.34,345.72 A372,372 0 0 0 147.34,341.58 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; stuck &gt; obsessing</title></path>
+<text transform="rotate(67.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">obsessing</text>
+<path d="M209.71,527.87 A568,568 0 0 1 194.27,533.75 L127.23,349.57 A372,372 0 0 0 137.34,345.72 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; stuck &gt; compelled</title></path>
+<text transform="rotate(69.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">compelled</text>
+<path d="M127.23,349.57 A372,372 0 0 1 64.60,366.35 L40.81,231.43 A235,235 0 0 0 80.37,220.83 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; shut down</title></path>
+<text transform="rotate(75.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">shut down</text>
+<path d="M194.27,533.75 A568,568 0 0 1 178.66,539.17 L117.01,353.12 A372,372 0 0 0 127.23,349.57 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; frozen</title></path>
+<text transform="rotate(70.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">frozen</text>
+<path d="M178.66,539.17 A568,568 0 0 1 162.90,544.14 L106.69,356.37 A372,372 0 0 0 117.01,353.12 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; numb</title></path>
+<text transform="rotate(72.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">numb</text>
+<path d="M162.90,544.14 A568,568 0 0 1 147.01,548.65 L96.28,359.32 A372,372 0 0 0 106.69,356.37 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; blank</title></path>
+<text transform="rotate(74.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">blank</text>
+<path d="M147.01,548.65 A568,568 0 0 1 130.99,552.69 L85.79,361.97 A372,372 0 0 0 96.28,359.32 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; checked out</title></path>
+<text transform="rotate(75.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">checked out</text>
+<path d="M130.99,552.69 A568,568 0 0 1 114.86,556.27 L75.22,364.31 A372,372 0 0 0 85.79,361.97 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; mute</title></path>
+<text transform="rotate(77.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">mute</text>
+<path d="M114.86,556.27 A568,568 0 0 1 98.63,559.37 L64.60,366.35 A372,372 0 0 0 75.22,364.31 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; shut down &gt; unreal</title></path>
 <text transform="rotate(79.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">unreal</text>
 <path d="M64.60,366.35 A372,372 0 0 1 0.00,372.00 L0.00,235.00 A235,235 0 0 0 40.81,231.43 Z" fill="#c292c3" stroke="#fcfcfb" stroke-width="2"><title>overloaded &gt; drained</title></path>
 <text transform="rotate(85.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">drained</text>
@@ -256,8 +256,8 @@
 <text transform="rotate(85.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">sleepy</text>
 <path d="M33.03,567.04 A568,568 0 0 1 16.52,567.76 L10.82,371.84 A372,372 0 0 0 21.63,371.37 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; drained &gt; foggy</title></path>
 <text transform="rotate(87.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">foggy</text>
-<path d="M16.52,567.76 A568,568 0 0 1 0.00,568.00 L0.00,372.00 A372,372 0 0 0 10.82,371.84 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; drained &gt; stuck</title></path>
-<text transform="rotate(89.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">stuck</text>
+<path d="M16.52,567.76 A568,568 0 0 1 0.00,568.00 L0.00,372.00 A372,372 0 0 0 10.82,371.84 Z" fill="#dec3de" stroke="#fcfcfb" stroke-width="1.5"><title>overloaded &gt; drained &gt; burned out</title></path>
+<text transform="rotate(89.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">burned out</text>
 <path d="M0.00,235.00 A235,235 0 0 1 -203.52,117.50 L-82.27,47.50 A95,95 0 0 0 0.00,95.00 Z" fill="#4a6fdc" stroke="#fcfcfb" stroke-width="2.5"><title>sad (unpleasant)</title></path>
 <text transform="translate(-84.50,146.36) rotate(390.00)" text-anchor="middle" dominant-baseline="middle" font-size="30" font-weight="650" fill="#ffffff">sad</text>
 <path d="M0.00,372.00 A372,372 0 0 1 -64.60,366.35 L-40.81,231.43 A235,235 0 0 0 0.00,235.00 Z" fill="#8fa6e9" stroke="#fcfcfb" stroke-width="2"><title>sad &gt; down</title></path>
@@ -404,8 +404,8 @@
 <text transform="rotate(189.17) translate(380.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">steady</text>
 <path d="M-366.35,-64.60 A372,372 0 0 1 -349.57,-127.23 L-220.83,-80.37 A235,235 0 0 0 -231.43,-40.81 Z" fill="#7cc5bc" stroke="#fcfcfb" stroke-width="2"><title>calm &gt; focused</title></path>
 <text transform="rotate(195.00) translate(245.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">focused</text>
-<path d="M-559.37,-98.63 A568,568 0 0 1 -556.27,-114.86 L-364.31,-75.22 A372,372 0 0 0 -366.35,-64.60 Z" fill="#b7dfda" stroke="#fcfcfb" stroke-width="1.5"><title>calm &gt; focused &gt; locked in</title></path>
-<text transform="rotate(190.83) translate(380.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">locked in</text>
+<path d="M-559.37,-98.63 A568,568 0 0 1 -556.27,-114.86 L-364.31,-75.22 A372,372 0 0 0 -366.35,-64.60 Z" fill="#b7dfda" stroke="#fcfcfb" stroke-width="1.5"><title>calm &gt; focused &gt; absorbed</title></path>
+<text transform="rotate(190.83) translate(380.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">absorbed</text>
 <path d="M-556.27,-114.86 A568,568 0 0 1 -552.69,-130.99 L-361.97,-85.79 A372,372 0 0 0 -364.31,-75.22 Z" fill="#b7dfda" stroke="#fcfcfb" stroke-width="1.5"><title>calm &gt; focused &gt; engaged</title></path>
 <text transform="rotate(192.50) translate(380.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">engaged</text>
 <path d="M-552.69,-130.99 A568,568 0 0 1 -548.65,-147.01 L-359.32,-96.28 A372,372 0 0 0 -361.97,-85.79 Z" fill="#b7dfda" stroke="#fcfcfb" stroke-width="1.5"><title>calm &gt; focused &gt; in flow</title></path>
