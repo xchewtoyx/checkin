@@ -64,7 +64,7 @@ export const WHEEL: WheelSector[] = [
     ],
   },
   {
-    core: "afraid",
+    core: "fearful",
     hue: "#e8871e",
     valence: "unpleasant",
     feelings: [
@@ -78,11 +78,11 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "insecure",
-        finer: ["inadequate", "unsure", "exposed", "unworthy", "small", "intimidated"],
+        finer: ["inadequate", "unsure", "exposed", "unworthy", "inferior", "intimidated"],
       },
       {
         word: "dreading",
-        finer: ["sinking", "daunted", "wary", "reluctant", "queasy", "on eggshells"],
+        finer: ["sinking", "daunted", "wary", "hesitant", "queasy", "on eggshells"],
       },
       {
         word: "helpless",
@@ -198,7 +198,7 @@ export const WHEEL: WheelSector[] = [
       },
       {
         word: "excited",
-        finer: ["eager", "thrilled", "exhilarated", "energetic", "giddy", "elated"],
+        finer: ["eager", "thrilled", "exhilarated", "energetic", "giddy", "joyful"],
       },
       {
         word: "playful",

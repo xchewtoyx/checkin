@@ -195,7 +195,7 @@ anything good about it.
 
 ---
 
-## afraid
+## fearful
 
 Threat detection is running: something bad could happen, might be
 happening, or is coming. Fear points at the **future or the uncertain**,
@@ -276,7 +276,7 @@ it.
   on display and anyone can take a shot at them.
 - **unworthy** — the sense of not deserving what you have or being owed
   your place; praise bounces off it.
-- **small** — diminished in your own eyes next to someone or something;
+- **inferior** — diminished in your own eyes next to someone or something;
   shrunk, junior, negligible.
 - **intimidated** — a specific person or setting makes you shrink and
   self-censor; capability drops in their presence.
@@ -297,7 +297,7 @@ off.
   it before you have begun.
 - **wary** — guarded and watchful around a person, place, or step that
   has bitten you before; proceeding, but with your hand on the rail.
-- **reluctant** — you will probably do the thing, but every part of you is
+- **hesitant** — you will probably do the thing, but every part of you is
   dragging; consent without willingness.
 - **queasy** — the dread is in your stomach: mild nausea, appetite gone,
   gut registering what the mind is minimising.
@@ -570,7 +570,7 @@ recent answer.
 Something is lost, missing, or short of what it should be, and the energy
 runs low and **inward** — toward tears, heaviness, withdrawal. Sadness is
 about an absence; that is what separates it from `overloaded` (too much)
-and `afraid` (not yet).
+and `fearful` (not yet).
 
 **Boundary:** if there is no loss and no ache — just emptiness or a spent
 tank — look at `overloaded > shut down > numb` or `overloaded > drained`.
@@ -911,7 +911,7 @@ reasons; counting down *toward* something rather than away from it.
   ready to charge at the thing.
 - **giddy** — excitement fizzing over into lightheadedness and laughter;
   slightly silly with it.
-- **elated** — the peak: joy at altitude, walking on air, grinning
+- **joyful** — the peak: joy at altitude, walking on air, grinning
   without meaning to.
 
 ### playful

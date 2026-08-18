@@ -86,91 +86,91 @@
 <text transform="rotate(-32.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">appalled</text>
 <path d="M483.43,-298.19 A568,568 0 0 1 491.90,-284.00 L322.16,-186.00 A372,372 0 0 0 316.62,-195.29 Z" fill="#f1c0c4" stroke="#fcfcfb" stroke-width="1.5"><title>angry &gt; critical &gt; judgmental</title></path>
 <text transform="rotate(-30.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">judgmental</text>
-<path d="M203.52,-117.50 A235,235 0 0 1 203.52,117.50 L82.27,47.50 A95,95 0 0 0 82.27,-47.50 Z" fill="#e8871e" stroke="#fcfcfb" stroke-width="2.5"><title>afraid (unpleasant)</title></path>
-<text transform="translate(169.00,0.00) rotate(90.00)" text-anchor="middle" dominant-baseline="middle" font-size="30" font-weight="650" fill="#26262b">afraid</text>
-<path d="M322.16,-186.00 A372,372 0 0 1 349.57,-127.23 L220.83,-80.37 A235,235 0 0 0 203.52,-117.50 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>afraid &gt; anxious</title></path>
+<path d="M203.52,-117.50 A235,235 0 0 1 203.52,117.50 L82.27,47.50 A95,95 0 0 0 82.27,-47.50 Z" fill="#e8871e" stroke="#fcfcfb" stroke-width="2.5"><title>fearful (unpleasant)</title></path>
+<text transform="translate(169.00,0.00) rotate(90.00)" text-anchor="middle" dominant-baseline="middle" font-size="30" font-weight="650" fill="#26262b">fearful</text>
+<path d="M322.16,-186.00 A372,372 0 0 1 349.57,-127.23 L220.83,-80.37 A235,235 0 0 0 203.52,-117.50 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>fearful &gt; anxious</title></path>
 <text transform="rotate(-25.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">anxious</text>
-<path d="M491.90,-284.00 A568,568 0 0 1 499.95,-269.57 L327.43,-176.55 A372,372 0 0 0 322.16,-186.00 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; worried</title></path>
+<path d="M491.90,-284.00 A568,568 0 0 1 499.95,-269.57 L327.43,-176.55 A372,372 0 0 0 322.16,-186.00 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; anxious &gt; worried</title></path>
 <text transform="rotate(-29.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">worried</text>
-<path d="M499.95,-269.57 A568,568 0 0 1 507.58,-254.92 L332.43,-166.95 A372,372 0 0 0 327.43,-176.55 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; uneasy</title></path>
+<path d="M499.95,-269.57 A568,568 0 0 1 507.58,-254.92 L332.43,-166.95 A372,372 0 0 0 327.43,-176.55 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; anxious &gt; uneasy</title></path>
 <text transform="rotate(-27.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">uneasy</text>
-<path d="M507.58,-254.92 A568,568 0 0 1 514.78,-240.05 L337.15,-157.21 A372,372 0 0 0 332.43,-166.95 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; nervous</title></path>
+<path d="M507.58,-254.92 A568,568 0 0 1 514.78,-240.05 L337.15,-157.21 A372,372 0 0 0 332.43,-166.95 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; anxious &gt; nervous</title></path>
 <text transform="rotate(-25.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">nervous</text>
-<path d="M514.78,-240.05 A568,568 0 0 1 521.55,-224.97 L341.58,-147.34 A372,372 0 0 0 337.15,-157.21 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; keyed up</title></path>
+<path d="M514.78,-240.05 A568,568 0 0 1 521.55,-224.97 L341.58,-147.34 A372,372 0 0 0 337.15,-157.21 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; anxious &gt; keyed up</title></path>
 <text transform="rotate(-24.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">keyed up</text>
-<path d="M521.55,-224.97 A568,568 0 0 1 527.87,-209.71 L345.72,-137.34 A372,372 0 0 0 341.58,-147.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; jittery</title></path>
+<path d="M521.55,-224.97 A568,568 0 0 1 527.87,-209.71 L345.72,-137.34 A372,372 0 0 0 341.58,-147.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; anxious &gt; jittery</title></path>
 <text transform="rotate(-22.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">jittery</text>
-<path d="M527.87,-209.71 A568,568 0 0 1 533.75,-194.27 L349.57,-127.23 A372,372 0 0 0 345.72,-137.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; anxious &gt; tense</title></path>
+<path d="M527.87,-209.71 A568,568 0 0 1 533.75,-194.27 L349.57,-127.23 A372,372 0 0 0 345.72,-137.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; anxious &gt; tense</title></path>
 <text transform="rotate(-20.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">tense</text>
-<path d="M349.57,-127.23 A372,372 0 0 1 366.35,-64.60 L231.43,-40.81 A235,235 0 0 0 220.83,-80.37 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>afraid &gt; panicked</title></path>
+<path d="M349.57,-127.23 A372,372 0 0 1 366.35,-64.60 L231.43,-40.81 A235,235 0 0 0 220.83,-80.37 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>fearful &gt; panicked</title></path>
 <text transform="rotate(-15.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">panicked</text>
-<path d="M533.75,-194.27 A568,568 0 0 1 539.17,-178.66 L353.12,-117.01 A372,372 0 0 0 349.57,-127.23 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; panicked &gt; terrified</title></path>
+<path d="M533.75,-194.27 A568,568 0 0 1 539.17,-178.66 L353.12,-117.01 A372,372 0 0 0 349.57,-127.23 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; panicked &gt; terrified</title></path>
 <text transform="rotate(-19.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">terrified</text>
-<path d="M539.17,-178.66 A568,568 0 0 1 544.14,-162.90 L356.37,-106.69 A372,372 0 0 0 353.12,-117.01 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; panicked &gt; breathless</title></path>
+<path d="M539.17,-178.66 A568,568 0 0 1 544.14,-162.90 L356.37,-106.69 A372,372 0 0 0 353.12,-117.01 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; panicked &gt; breathless</title></path>
 <text transform="rotate(-17.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">breathless</text>
-<path d="M544.14,-162.90 A568,568 0 0 1 548.65,-147.01 L359.32,-96.28 A372,372 0 0 0 356.37,-106.69 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; panicked &gt; alarmed</title></path>
+<path d="M544.14,-162.90 A568,568 0 0 1 548.65,-147.01 L359.32,-96.28 A372,372 0 0 0 356.37,-106.69 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; panicked &gt; alarmed</title></path>
 <text transform="rotate(-15.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">alarmed</text>
-<path d="M548.65,-147.01 A568,568 0 0 1 552.69,-130.99 L361.97,-85.79 A372,372 0 0 0 359.32,-96.28 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; panicked &gt; frantic</title></path>
+<path d="M548.65,-147.01 A568,568 0 0 1 552.69,-130.99 L361.97,-85.79 A372,372 0 0 0 359.32,-96.28 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; panicked &gt; frantic</title></path>
 <text transform="rotate(-14.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">frantic</text>
-<path d="M552.69,-130.99 A568,568 0 0 1 556.27,-114.86 L364.31,-75.22 A372,372 0 0 0 361.97,-85.79 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; panicked &gt; shaky</title></path>
+<path d="M552.69,-130.99 A568,568 0 0 1 556.27,-114.86 L364.31,-75.22 A372,372 0 0 0 361.97,-85.79 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; panicked &gt; shaky</title></path>
 <text transform="rotate(-12.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">shaky</text>
-<path d="M556.27,-114.86 A568,568 0 0 1 559.37,-98.63 L366.35,-64.60 A372,372 0 0 0 364.31,-75.22 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; panicked &gt; spooked</title></path>
+<path d="M556.27,-114.86 A568,568 0 0 1 559.37,-98.63 L366.35,-64.60 A372,372 0 0 0 364.31,-75.22 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; panicked &gt; spooked</title></path>
 <text transform="rotate(-10.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">spooked</text>
-<path d="M366.35,-64.60 A372,372 0 0 1 372.00,0.00 L235.00,0.00 A235,235 0 0 0 231.43,-40.81 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>afraid &gt; insecure</title></path>
+<path d="M366.35,-64.60 A372,372 0 0 1 372.00,0.00 L235.00,0.00 A235,235 0 0 0 231.43,-40.81 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>fearful &gt; insecure</title></path>
 <text transform="rotate(-5.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">insecure</text>
-<path d="M559.37,-98.63 A568,568 0 0 1 562.00,-82.32 L368.07,-53.91 A372,372 0 0 0 366.35,-64.60 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; insecure &gt; inadequate</title></path>
+<path d="M559.37,-98.63 A568,568 0 0 1 562.00,-82.32 L368.07,-53.91 A372,372 0 0 0 366.35,-64.60 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; insecure &gt; inadequate</title></path>
 <text transform="rotate(-9.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">inadequate</text>
-<path d="M562.00,-82.32 A568,568 0 0 1 564.16,-65.94 L369.48,-43.19 A372,372 0 0 0 368.07,-53.91 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; insecure &gt; unsure</title></path>
+<path d="M562.00,-82.32 A568,568 0 0 1 564.16,-65.94 L369.48,-43.19 A372,372 0 0 0 368.07,-53.91 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; insecure &gt; unsure</title></path>
 <text transform="rotate(-7.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">unsure</text>
-<path d="M564.16,-65.94 A568,568 0 0 1 565.84,-49.50 L370.58,-32.42 A372,372 0 0 0 369.48,-43.19 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; insecure &gt; exposed</title></path>
+<path d="M564.16,-65.94 A568,568 0 0 1 565.84,-49.50 L370.58,-32.42 A372,372 0 0 0 369.48,-43.19 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; insecure &gt; exposed</title></path>
 <text transform="rotate(-5.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">exposed</text>
-<path d="M565.84,-49.50 A568,568 0 0 1 567.04,-33.03 L371.37,-21.63 A372,372 0 0 0 370.58,-32.42 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; insecure &gt; unworthy</title></path>
+<path d="M565.84,-49.50 A568,568 0 0 1 567.04,-33.03 L371.37,-21.63 A372,372 0 0 0 370.58,-32.42 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; insecure &gt; unworthy</title></path>
 <text transform="rotate(-4.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">unworthy</text>
-<path d="M567.04,-33.03 A568,568 0 0 1 567.76,-16.52 L371.84,-10.82 A372,372 0 0 0 371.37,-21.63 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; insecure &gt; small</title></path>
-<text transform="rotate(-2.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">small</text>
-<path d="M567.76,-16.52 A568,568 0 0 1 568.00,0.00 L372.00,0.00 A372,372 0 0 0 371.84,-10.82 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; insecure &gt; intimidated</title></path>
+<path d="M567.04,-33.03 A568,568 0 0 1 567.76,-16.52 L371.84,-10.82 A372,372 0 0 0 371.37,-21.63 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; insecure &gt; inferior</title></path>
+<text transform="rotate(-2.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">inferior</text>
+<path d="M567.76,-16.52 A568,568 0 0 1 568.00,0.00 L372.00,0.00 A372,372 0 0 0 371.84,-10.82 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; insecure &gt; intimidated</title></path>
 <text transform="rotate(-0.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">intimidated</text>
-<path d="M372.00,0.00 A372,372 0 0 1 366.35,64.60 L231.43,40.81 A235,235 0 0 0 235.00,0.00 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>afraid &gt; dreading</title></path>
+<path d="M372.00,0.00 A372,372 0 0 1 366.35,64.60 L231.43,40.81 A235,235 0 0 0 235.00,0.00 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>fearful &gt; dreading</title></path>
 <text transform="rotate(5.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">dreading</text>
-<path d="M568.00,0.00 A568,568 0 0 1 567.76,16.52 L371.84,10.82 A372,372 0 0 0 372.00,0.00 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; dreading &gt; sinking</title></path>
+<path d="M568.00,0.00 A568,568 0 0 1 567.76,16.52 L371.84,10.82 A372,372 0 0 0 372.00,0.00 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; dreading &gt; sinking</title></path>
 <text transform="rotate(0.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">sinking</text>
-<path d="M567.76,16.52 A568,568 0 0 1 567.04,33.03 L371.37,21.63 A372,372 0 0 0 371.84,10.82 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; dreading &gt; daunted</title></path>
+<path d="M567.76,16.52 A568,568 0 0 1 567.04,33.03 L371.37,21.63 A372,372 0 0 0 371.84,10.82 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; dreading &gt; daunted</title></path>
 <text transform="rotate(2.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">daunted</text>
-<path d="M567.04,33.03 A568,568 0 0 1 565.84,49.50 L370.58,32.42 A372,372 0 0 0 371.37,21.63 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; dreading &gt; wary</title></path>
+<path d="M567.04,33.03 A568,568 0 0 1 565.84,49.50 L370.58,32.42 A372,372 0 0 0 371.37,21.63 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; dreading &gt; wary</title></path>
 <text transform="rotate(4.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">wary</text>
-<path d="M565.84,49.50 A568,568 0 0 1 564.16,65.94 L369.48,43.19 A372,372 0 0 0 370.58,32.42 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; dreading &gt; reluctant</title></path>
-<text transform="rotate(5.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">reluctant</text>
-<path d="M564.16,65.94 A568,568 0 0 1 562.00,82.32 L368.07,53.91 A372,372 0 0 0 369.48,43.19 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; dreading &gt; queasy</title></path>
+<path d="M565.84,49.50 A568,568 0 0 1 564.16,65.94 L369.48,43.19 A372,372 0 0 0 370.58,32.42 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; dreading &gt; hesitant</title></path>
+<text transform="rotate(5.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">hesitant</text>
+<path d="M564.16,65.94 A568,568 0 0 1 562.00,82.32 L368.07,53.91 A372,372 0 0 0 369.48,43.19 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; dreading &gt; queasy</title></path>
 <text transform="rotate(7.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">queasy</text>
-<path d="M562.00,82.32 A568,568 0 0 1 559.37,98.63 L366.35,64.60 A372,372 0 0 0 368.07,53.91 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; dreading &gt; on eggshells</title></path>
+<path d="M562.00,82.32 A568,568 0 0 1 559.37,98.63 L366.35,64.60 A372,372 0 0 0 368.07,53.91 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; dreading &gt; on eggshells</title></path>
 <text transform="rotate(9.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">on eggshells</text>
-<path d="M366.35,64.60 A372,372 0 0 1 349.57,127.23 L220.83,80.37 A235,235 0 0 0 231.43,40.81 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>afraid &gt; helpless</title></path>
+<path d="M366.35,64.60 A372,372 0 0 1 349.57,127.23 L220.83,80.37 A235,235 0 0 0 231.43,40.81 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>fearful &gt; helpless</title></path>
 <text transform="rotate(15.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">helpless</text>
-<path d="M559.37,98.63 A568,568 0 0 1 556.27,114.86 L364.31,75.22 A372,372 0 0 0 366.35,64.60 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; helpless &gt; trapped</title></path>
+<path d="M559.37,98.63 A568,568 0 0 1 556.27,114.86 L364.31,75.22 A372,372 0 0 0 366.35,64.60 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; helpless &gt; trapped</title></path>
 <text transform="rotate(10.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">trapped</text>
-<path d="M556.27,114.86 A568,568 0 0 1 552.69,130.99 L361.97,85.79 A372,372 0 0 0 364.31,75.22 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; helpless &gt; cornered</title></path>
+<path d="M556.27,114.86 A568,568 0 0 1 552.69,130.99 L361.97,85.79 A372,372 0 0 0 364.31,75.22 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; helpless &gt; cornered</title></path>
 <text transform="rotate(12.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">cornered</text>
-<path d="M552.69,130.99 A568,568 0 0 1 548.65,147.01 L359.32,96.28 A372,372 0 0 0 361.97,85.79 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; helpless &gt; powerless</title></path>
+<path d="M552.69,130.99 A568,568 0 0 1 548.65,147.01 L359.32,96.28 A372,372 0 0 0 361.97,85.79 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; helpless &gt; powerless</title></path>
 <text transform="rotate(14.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">powerless</text>
-<path d="M548.65,147.01 A568,568 0 0 1 544.14,162.90 L356.37,106.69 A372,372 0 0 0 359.32,96.28 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; helpless &gt; defenceless</title></path>
+<path d="M548.65,147.01 A568,568 0 0 1 544.14,162.90 L356.37,106.69 A372,372 0 0 0 359.32,96.28 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; helpless &gt; defenceless</title></path>
 <text transform="rotate(15.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">defenceless</text>
-<path d="M544.14,162.90 A568,568 0 0 1 539.17,178.66 L353.12,117.01 A372,372 0 0 0 356.37,106.69 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; helpless &gt; desperate</title></path>
+<path d="M544.14,162.90 A568,568 0 0 1 539.17,178.66 L353.12,117.01 A372,372 0 0 0 356.37,106.69 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; helpless &gt; desperate</title></path>
 <text transform="rotate(17.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">desperate</text>
-<path d="M539.17,178.66 A568,568 0 0 1 533.75,194.27 L349.57,127.23 A372,372 0 0 0 353.12,117.01 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; helpless &gt; adrift</title></path>
+<path d="M539.17,178.66 A568,568 0 0 1 533.75,194.27 L349.57,127.23 A372,372 0 0 0 353.12,117.01 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; helpless &gt; adrift</title></path>
 <text transform="rotate(19.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">adrift</text>
-<path d="M349.57,127.23 A372,372 0 0 1 322.16,186.00 L203.52,117.50 A235,235 0 0 0 220.83,80.37 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>afraid &gt; confused</title></path>
+<path d="M349.57,127.23 A372,372 0 0 1 322.16,186.00 L203.52,117.50 A235,235 0 0 0 220.83,80.37 Z" fill="#f1b574" stroke="#fcfcfb" stroke-width="2"><title>fearful &gt; confused</title></path>
 <text transform="rotate(25.00) translate(245.00,0)" text-anchor="start" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">confused</text>
-<path d="M533.75,194.27 A568,568 0 0 1 527.87,209.71 L345.72,137.34 A372,372 0 0 0 349.57,127.23 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; confused &gt; perplexed</title></path>
+<path d="M533.75,194.27 A568,568 0 0 1 527.87,209.71 L345.72,137.34 A372,372 0 0 0 349.57,127.23 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; confused &gt; perplexed</title></path>
 <text transform="rotate(20.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">perplexed</text>
-<path d="M527.87,209.71 A568,568 0 0 1 521.55,224.97 L341.58,147.34 A372,372 0 0 0 345.72,137.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; confused &gt; lost</title></path>
+<path d="M527.87,209.71 A568,568 0 0 1 521.55,224.97 L341.58,147.34 A372,372 0 0 0 345.72,137.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; confused &gt; lost</title></path>
 <text transform="rotate(22.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">lost</text>
-<path d="M521.55,224.97 A568,568 0 0 1 514.78,240.05 L337.15,157.21 A372,372 0 0 0 341.58,147.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; confused &gt; torn</title></path>
+<path d="M521.55,224.97 A568,568 0 0 1 514.78,240.05 L337.15,157.21 A372,372 0 0 0 341.58,147.34 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; confused &gt; torn</title></path>
 <text transform="rotate(24.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">torn</text>
-<path d="M514.78,240.05 A568,568 0 0 1 507.58,254.92 L332.43,166.95 A372,372 0 0 0 337.15,157.21 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; confused &gt; muddled</title></path>
+<path d="M514.78,240.05 A568,568 0 0 1 507.58,254.92 L332.43,166.95 A372,372 0 0 0 337.15,157.21 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; confused &gt; muddled</title></path>
 <text transform="rotate(25.83) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">muddled</text>
-<path d="M507.58,254.92 A568,568 0 0 1 499.95,269.57 L327.43,176.55 A372,372 0 0 0 332.43,166.95 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; confused &gt; blindsided</title></path>
+<path d="M507.58,254.92 A568,568 0 0 1 499.95,269.57 L327.43,176.55 A372,372 0 0 0 332.43,166.95 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; confused &gt; blindsided</title></path>
 <text transform="rotate(27.50) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">blindsided</text>
-<path d="M499.95,269.57 A568,568 0 0 1 491.90,284.00 L322.16,186.00 A372,372 0 0 0 327.43,176.55 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>afraid &gt; confused &gt; flustered</title></path>
+<path d="M499.95,269.57 A568,568 0 0 1 491.90,284.00 L322.16,186.00 A372,372 0 0 0 327.43,176.55 Z" fill="#f7d6b3" stroke="#fcfcfb" stroke-width="1.5"><title>fearful &gt; confused &gt; flustered</title></path>
 <text transform="rotate(29.17) translate(380.00,0)" text-anchor="start" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">flustered</text>
 <path d="M203.52,117.50 A235,235 0 0 1 0.00,235.00 L0.00,95.00 A95,95 0 0 0 82.27,47.50 Z" fill="#9d4f9e" stroke="#fcfcfb" stroke-width="2.5"><title>overloaded (unpleasant)</title></path>
 <text transform="translate(84.50,146.36) rotate(330.00)" text-anchor="middle" dominant-baseline="middle" font-size="30" font-weight="650" fill="#ffffff">overloaded</text>
@@ -458,8 +458,8 @@
 <text transform="rotate(225.83) translate(380.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">energetic</text>
 <path d="M-389.79,-413.15 A568,568 0 0 1 -377.60,-424.31 L-247.30,-277.89 A372,372 0 0 0 -255.28,-270.58 Z" fill="#f2e0af" stroke="#fcfcfb" stroke-width="1.5"><title>happy &gt; excited &gt; giddy</title></path>
 <text transform="rotate(227.50) translate(380.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">giddy</text>
-<path d="M-377.60,-424.31 A568,568 0 0 1 -365.10,-435.11 L-239.12,-284.97 A372,372 0 0 0 -247.30,-277.89 Z" fill="#f2e0af" stroke="#fcfcfb" stroke-width="1.5"><title>happy &gt; excited &gt; elated</title></path>
-<text transform="rotate(229.17) translate(380.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">elated</text>
+<path d="M-377.60,-424.31 A568,568 0 0 1 -365.10,-435.11 L-239.12,-284.97 A372,372 0 0 0 -247.30,-277.89 Z" fill="#f2e0af" stroke="#fcfcfb" stroke-width="1.5"><title>happy &gt; excited &gt; joyful</title></path>
+<text transform="rotate(229.17) translate(380.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="450" fill="#26262b">joyful</text>
 <path d="M-239.12,-284.97 A372,372 0 0 1 -186.00,-322.16 L-117.50,-203.52 A235,235 0 0 0 -151.06,-180.02 Z" fill="#e7c76d" stroke="#fcfcfb" stroke-width="2"><title>happy &gt; playful</title></path>
 <text transform="rotate(235.00) translate(245.00,0) rotate(180)" text-anchor="end" dominant-baseline="middle" font-size="16.5" font-weight="600" fill="#26262b">playful</text>
 <path d="M-365.10,-435.11 A568,568 0 0 1 -352.29,-445.55 L-230.73,-291.80 A372,372 0 0 0 -239.12,-284.97 Z" fill="#f2e0af" stroke="#fcfcfb" stroke-width="1.5"><title>happy &gt; playful &gt; amused</title></path>
