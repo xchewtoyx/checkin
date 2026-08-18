@@ -54,6 +54,7 @@ describe("export serialization", () => {
         intensity: 7,
         note: null,
         confidence: null,
+        vocab_era: null,
         observed_at: "2026-08-13T10:00:00.000Z",
         submitted_at: "2026-08-13T10:01:00.000Z",
       },
@@ -73,6 +74,7 @@ describe("export serialization", () => {
         intensity: 5,
         note: "before the meeting",
         confidence: "strong",
+        vocab_era: "E5",
         observed_at: "2026-08-13T10:00:00.000Z",
         submitted_at: "2026-08-13T10:01:00.000Z",
       },
@@ -81,6 +83,7 @@ describe("export serialization", () => {
     const parsed = JSON.parse(json);
     expect(parsed[0].note).toBe("before the meeting");
     expect(parsed[0].confidence).toBe("strong");
+    expect(parsed[0].vocab_era).toBe("E5");
   });
 
   it("serializes note and confidence as null when unset", () => {
@@ -92,6 +95,7 @@ describe("export serialization", () => {
         intensity: 4,
         note: null,
         confidence: null,
+        vocab_era: null,
         observed_at: "2026-08-13T10:00:00.000Z",
         submitted_at: "2026-08-13T10:01:00.000Z",
       },
@@ -100,6 +104,7 @@ describe("export serialization", () => {
     const parsed = JSON.parse(json);
     expect(parsed[0].note).toBeNull();
     expect(parsed[0].confidence).toBeNull();
+    expect(parsed[0].vocab_era).toBeNull();
     expect(parsed[0].feeling).toBe("anxious: before the meeting");
   });
 });

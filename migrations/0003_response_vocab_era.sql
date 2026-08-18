@@ -1,0 +1,11 @@
+-- Additive column on checkin_response (#1 §4 D1 evolution rule).
+-- vocab_era: the feelings-vocabulary era (docs/feelings-vocabulary.md § Eras)
+--   of the check-in page that served the recorded word. Stamped into the page
+--   at render time and carried back in the submission, so a page opened
+--   before a vocabulary deploy and submitted after it records the era the
+--   user actually chose from — deploy-time inference cannot classify that
+--   straddle correctly. NULL = recorded before stamping existed, or
+--   submitted from a page rendered by pre-stamp Worker code; map those by
+--   deploy date as before (row-shape rule, mirroring the `note` cutover in
+--   docs/analytics-extract.md).
+ALTER TABLE checkin_response ADD COLUMN vocab_era TEXT;

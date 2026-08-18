@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import vocabularyDoc from "../docs/feelings-vocabulary.md?raw";
 import { renderCheckinPage } from "../src/checkin-page";
-import { LABEL_BUDGET, WHEEL } from "../src/feelings-wheel";
+import { LABEL_BUDGET, VOCAB_ERA, WHEEL } from "../src/feelings-wheel";
 import { PromptRow } from "../src/store";
 
 const allWords = WHEEL.flatMap((s) => [
@@ -54,6 +55,13 @@ describe("taxonomy structure (issue #31)", () => {
     const valences = new Set(WHEEL.map((s) => s.valence));
     expect(valences.size).toBe(2);
   });
+
+  it("VOCAB_ERA matches the latest era in docs/feelings-vocabulary.md", () => {
+    const eras = [...vocabularyDoc.matchAll(/^\| (E\d+) \|/gm)].map((m) => m[1]);
+    expect(eras.length).toBeGreaterThan(0);
+    const latest = eras.sort((a, b) => Number(a.slice(1)) - Number(b.slice(1))).at(-1);
+    expect(VOCAB_ERA).toBe(latest);
+  });
 });
 
 describe("renderCheckinPage — progressive-disclosure ladder (#32)", () => {
@@ -102,6 +110,13 @@ describe("renderCheckinPage — progressive-disclosure ladder (#32)", () => {
     for (const word of allWords) {
       expect(html).toContain(`"${word}"`);
     }
+  });
+
+  it("stamps the page with the vocabulary era for submission carry-back", () => {
+    const html = renderCheckinPage(prompt, now);
+
+    expect(html).toContain(`var VOCAB_ERA = ${JSON.stringify(VOCAB_ERA)};`);
+    expect(html).toContain("vocab_era: VOCAB_ERA");
   });
 
   it("renders an optional, unset-by-default confidence toggle", () => {

@@ -18,10 +18,16 @@ function makePrompt(id: string, token: string): PromptRow {
 
 async function fetchResponseRow(id: string) {
   return env.DB.prepare(
-    "SELECT feeling, intensity, note, confidence FROM checkin_response WHERE id = ?",
+    "SELECT feeling, intensity, note, confidence, vocab_era FROM checkin_response WHERE id = ?",
   )
     .bind(id)
-    .first<{ feeling: string; intensity: number; note: string | null; confidence: string | null }>();
+    .first<{
+      feeling: string;
+      intensity: number;
+      note: string | null;
+      confidence: string | null;
+      vocab_era: string | null;
+    }>();
 }
 
 describe("recordResponse — note and confidence", () => {
@@ -153,5 +159,83 @@ describe("recordResponse — note and confidence", () => {
     expect(row?.feeling).toBe("calm");
     expect(row?.note).toBe("changed my mind");
     expect(row?.confidence).toBe("strong");
+  });
+});
+
+describe("recordResponse — page-stamped vocabulary era", () => {
+  beforeEach(async () => {
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+  });
+
+  it("stores the era stamped into the submitting page", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-era-1", "token-era-1"));
+
+    const result = await recordResponse(env.DB, {
+      token: "token-era-1",
+      feeling: "fearful",
+      intensity: 5,
+      vocabEra: "E5",
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchResponseRow("response-prompt-era-1");
+    expect(row?.vocab_era).toBe("E5");
+  });
+
+  it("stores null when the submission carries no era (pre-stamp page)", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-era-2", "token-era-2"));
+
+    await recordResponse(env.DB, {
+      token: "token-era-2",
+      feeling: "calm",
+      intensity: 3,
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    const row = await fetchResponseRow("response-prompt-era-2");
+    expect(row?.vocab_era).toBeNull();
+  });
+
+  it("discards a malformed era to null without rejecting the check-in", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-era-3", "token-era-3"));
+
+    const result = await recordResponse(env.DB, {
+      token: "token-era-3",
+      feeling: "content",
+      intensity: 2,
+      vocabEra: "not-an-era",
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchResponseRow("response-prompt-era-3");
+    expect(row?.feeling).toBe("content");
+    expect(row?.vocab_era).toBeNull();
+  });
+
+  it("re-stamps the era of the page used for a re-submission", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-era-4", "token-era-4"));
+    const now = new Date("2026-08-15T09:10:00.000Z");
+
+    await recordResponse(env.DB, {
+      token: "token-era-4",
+      feeling: "bewildered",
+      intensity: 6,
+      vocabEra: "E4",
+      now,
+    });
+    await recordResponse(env.DB, {
+      token: "token-era-4",
+      feeling: "perplexed",
+      intensity: 6,
+      vocabEra: "E5",
+      now,
+    });
+
+    const row = await fetchResponseRow("response-prompt-era-4");
+    expect(row?.feeling).toBe("perplexed");
+    expect(row?.vocab_era).toBe("E5");
   });
 });

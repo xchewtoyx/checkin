@@ -74,6 +74,7 @@ async function handleCheckinToken(
     intensity?: number;
     note?: string;
     confidence?: string | null;
+    vocab_era?: string | null;
   };
 
   if (!payload.feeling || payload.intensity === undefined) {
@@ -86,6 +87,7 @@ async function handleCheckinToken(
     intensity: Number(payload.intensity),
     note: payload.note,
     confidence: payload.confidence,
+    vocabEra: payload.vocab_era,
     now,
   });
 

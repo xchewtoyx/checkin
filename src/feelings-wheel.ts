@@ -18,6 +18,13 @@ export interface WheelSector {
 // past 12 characters fails loudly here rather than truncating in the UI.
 export const LABEL_BUDGET = 12;
 
+// The vocabulary era of WHEEL (docs/feelings-vocabulary.md § Eras). Bump in
+// the same change as any vocabulary revision — the structural test asserts
+// this constant against the era table in the docs, so forgetting fails CI.
+// The check-in page embeds it and the submission carries it back, stamping
+// each response with the era of the page that served the words.
+export const VOCAB_ERA = "E5";
+
 // The 6×6×6 feelings taxonomy (issue #31, revised E5): 6 cores × 6 middle
 // words × 6 outer words = 258 nodes, every word unique case-insensitively.
 // Willcox is the base, but the top level departs from it deliberately: the
