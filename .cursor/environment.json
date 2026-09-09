@@ -4,7 +4,13 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "user": "ubuntu",
+  "user": "node",
   "install": "npm ci",
-  "start": "npm run dev"
+  "start": "npm run dev -- --ip 0.0.0.0",
+  "ports": [
+    {
+      "name": "api",
+      "port": 8787
+    }
+  ]
 }
