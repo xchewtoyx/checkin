@@ -1,0 +1,39 @@
+# One-shot production dump for CCP-425 / checkin#25 (G1 live validation gate).
+# Runs on this issue branch only. Do not merge to main.
+name: G1 gate dump
+
+on:
+  push:
+    branches:
+      - issue-25-g1-live-validation-gate-report
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Configure production D1 binding
+        run: |
+          if [ -z "${{ vars.CLOUDFLARE_D1_DATABASE_ID }}" ]; then
+            echo "CLOUDFLARE_D1_DATABASE_ID repository variable is required" >&2
+            exit 1
+          fi
+          sed -i "s/__CLOUDFLARE_D1_DATABASE_ID__/${{ vars.CLOUDFLARE_D1_DATABASE_ID }}/g" wrangler.toml
+      - name: Dump D1 prompts, R2 objects, and extract files
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bash scripts/g1-gate-dump.sh
+      - name: Upload gate dump
+        uses: actions/upload-artifact@v4
+        with:
+          name: g1-gate-dump
+          path: /tmp/g1-gate-dump
+          if-no-files-found: error
