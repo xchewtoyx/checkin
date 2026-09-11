@@ -8,7 +8,11 @@ Thresholds are not revised after seeing the data.
 Primary records: GitHub [#1](https://github.com/xchewtoyx/checkin/issues/1)
 (MVP gate) and [#14](https://github.com/xchewtoyx/checkin/issues/14) (extract
 gate). Delivery: GitHub [#25](https://github.com/xchewtoyx/checkin/issues/25)
-and Linear [CCP-425](https://linear.app/chewcorp/issue/CCP-425).
+and Linear [CCP-425](https://linear.app/chewcorp/issue/CCP-425). Recorded on
+the feature-ask issues as
+[#1 comment](https://github.com/xchewtoyx/checkin/issues/1#issuecomment-5641319697)
+and
+[#14 comment](https://github.com/xchewtoyx/checkin/issues/14#issuecomment-5641319807).
 
 ## Numbers (before the verdict)
 
