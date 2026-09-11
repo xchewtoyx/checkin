@@ -160,6 +160,8 @@ Triaged by reversibility, as in #1.
 
 **Live validation gate (pre-committed):** after 7 consecutive days in production — **two daily manifests per table per day** (`030000` and `150000`), zero unexplained export failures, and analytics-side row counts matching D1 on inspection. Failure of the gate blocks building anything downstream of the extract.
 
+Evaluated 2026-09-11 for 2026-08-20 → 2026-08-26: **PASS**. Recorded in [`docs/g1-gate-report.md`](g1-gate-report.md).
+
 ## 7. Delivery order
 
 1. **E1 — The extract.** R2 binding + bucket, snapshot writer, manifest, slot gating in the scheduled handler, loop-isolation and idempotency tests. *This slice alone satisfies every F requirement.*
