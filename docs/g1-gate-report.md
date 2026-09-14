@@ -113,23 +113,76 @@ tying back to D1.
 for 2026-08-20 through 2026-08-26. Matching `checkin_prompt` and
 `checkin_response` `.jsonl.gz` objects exist for every slot.
 
-**Tie-back** (same check as `scripts/verify-analytics-extract.sh`): for all
-14 slots, gunzipped JSONL line counts equal the manifest `row_count` for
-both tables (28/28 table files). End-of-gate slot
-`2026-08-26/150000`:
+**Tie-back:** for all 14 slots, gunzipped JSONL line counts equal the
+manifest `row_count` for both tables (28/28 table files). End-of-gate slot
+`2026-08-26/150000`, extraction timestamp `2026-08-26T15:00:04.906Z`:
 
-| Table | manifest | jsonl lines | D1 rows with `created_at` ≤ extraction_timestamp |
+| Table | manifest | jsonl lines | D1 rows as of extraction_timestamp |
 | --- | ---: | ---: | ---: |
 | checkin_prompt | 40 | 40 | 40 |
-| checkin_response | 34 | 34 | (34 answered prompts at that instant) |
+| checkin_response | 34 | 34 | 34 |
 
-**Unexplained extract failures:** Workers Observability log query is not
-authorised with the deploy token (API 10000). Absence is observable from
-the bucket (N3): the only missing slot in the entire landing zone is
-`2026-08-15/030000`, which is outside this 7-day window and was explained
-on the day (E1 deployed after that morning UTC slot). From 2026-08-16
-`030000` through 2026-09-11 `150000` every expected slot is present. No
-unexplained gap in the gate window.
+The D1 column is a direct row count of each table, not an inference from
+prompt status:
+
+```sql
+SELECT COUNT(*) FROM checkin_prompt   WHERE created_at   <= '2026-08-26T15:00:04.906Z';
+SELECT COUNT(*) FROM checkin_response WHERE submitted_at <= '2026-08-26T15:00:04.906Z';
+```
+
+Both returned the figures above against production D1. The earlier
+response-side figure in this report was "34 answered prompts at that
+instant", which is not the same claim: the response upsert and the prompt
+status update are separate writes, so prompt status cannot stand in for a
+`checkin_response` count. It is now a count of that table.
+
+This reconstruction assumes no deletes or edits to those rows since
+extraction. It cannot detect a row that was mutated in place afterwards.
+
+**What each check proves.** The 28/28 result above is manifest-to-JSONL
+agreement only. Both sides of that comparison derive from the same
+in-memory array in `executeAnalyticsExtract`, so it can catch a corrupt or
+truncated *upload* and nothing else — in particular it cannot see a short
+read from D1. That matters because `listAllPromptsForExport` and
+`listAllResponsesForExport` are unpaged full-table queries; silent
+truncation under a D1 result limit is invisible at 40 rows and stays
+invisible until it is not.
+
+The extract now takes a separate `SELECT COUNT(*)` per table — a different
+code path from the row fetch — and records it in the manifest as
+`source_row_count` (`manifest_version` 2). On disagreement it fails closed:
+nothing is written, so a short read never lands as a complete-looking slot
+and instead shows up as a gap for the completeness check below.
+`scripts/verify-analytics-extract.sh` now compares all three numbers per
+table and fails on any mismatch, with an opt-in `--d1` flag that runs the
+as-of count live so a historical slot can be checked without running the
+query by hand. The 14 gate-window manifests predate the field
+(`manifest_version` 1) and are verified two-way, as the script reports.
+
+**Unexplained extract failures: not evaluated.** The pre-committed
+condition was zero unexplained `analytics_extract_failed` events. That
+event is only ever a structured log line — `src/index.ts` catches the
+extract error, logs it, and lets the rest of the scheduled handler
+continue — so the evidence lives solely in Workers Observability, whose
+query API the deploy token is not authorised for (API 10000). The
+condition was therefore never checked, in either direction. Tracked as
+[#61](https://github.com/xchewtoyx/checkin/issues/61).
+
+The substitute evidence is completeness of the landing zone (N3): the only
+missing slot in the entire landing zone is `2026-08-15/030000`, outside
+this 7-day window and explained on the day (E1 deployed after that morning
+UTC slot). From 2026-08-16 `030000` through 2026-09-11 `150000` every
+expected slot is present, so there is no unexplained gap in the gate
+window.
+
+That argument is stronger than a bare "no gaps": the export window is 15
+minutes and matches the cron cadence, so a thrown handler is not retried
+inside its own slot, and the manifest is written last and so acts as a
+commit marker — a partial run leaves a detectable gap. But it remains an
+argument from absence. It proves no gap remained; it does not prove no
+failure occurred, and it does not cover a manual re-run inside the same
+15-minute window, where a failed invocation could log the event and a
+later invocation overwrite the slot cleanly.
 
 ## Verdict
 
@@ -142,15 +195,27 @@ friction failure.
 | #1 duplicates | 0 | 0 | **PASS** |
 | #1 schedule drift | 0 | 0 | **PASS** |
 | #14 manifests | 14/14 slots | 7 days × 2 slots | **PASS** |
-| #14 tie-back | 28/28 files match | manifest = jsonl = D1 as-of | **PASS** |
-| #14 unexplained failures | none in landing zone | 0 | **PASS** |
+| #14 tie-back | 28/28 files match; D1 as-of 40/34 both tables | manifest = jsonl = D1 as-of | **PASS** |
+| #14 unexplained failures | log unqueryable (API 10000) | 0 | **NOT EVALUATED** — substitute: landing-zone completeness ([#61](https://github.com/xchewtoyx/checkin/issues/61)) |
 
 **#1 live validation gate: PASS.** Backlog order is unchanged. The check-in
 UX slice ([#40](https://github.com/xchewtoyx/checkin/issues/40) /
 CCP-428) is not pulled forward by this gate; it remains in its planned
 place.
 
-**#14 extract gate: PASS.** Downstream analytics work
+**#14 extract gate: QUALIFIED PASS.** Manifest completeness and the
+two-table D1 tie-back both pass on their own evidence. The third
+pre-committed condition — zero unexplained `analytics_extract_failed`
+events — was not evaluated, because the credentials in use cannot query
+the only place that event is recorded; landing-zone completeness stands in
+for it, and is argument from absence rather than the committed check. The
+threshold is not revised to fit that: the condition is recorded as
+unevaluated, not as met.
+
+Downstream analytics work
 ([checkin-analytics#1](https://github.com/xchewtoyx/checkin-analytics/issues/1),
 [checkin-analytics#5](https://github.com/xchewtoyx/checkin-analytics/issues/5))
-is not blocked by this gate.
+is not blocked by this gate. The telemetry gap is tracked as
+[#61](https://github.com/xchewtoyx/checkin/issues/61) and should be closed
+before the next gate window, so the condition is evaluable rather than
+substituted for a second time.

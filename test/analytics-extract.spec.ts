@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import {
   AnalyticsExtractEnv,
+  EXPORT_MANIFEST_VERSION,
   buildExportSlot,
   buildManifestObjectKey,
   buildTableObjectKey,
@@ -49,6 +50,45 @@ class MemoryR2Bucket {
 
 function createExtractEnv(bucket: R2Bucket): AnalyticsExtractEnv {
   return { DB: env.DB, EXTRACT_BUCKET: bucket };
+}
+
+interface StubCounts {
+  promptRows: number;
+  promptSourceCount: number;
+  responseRows: number;
+  responseSourceCount: number;
+}
+
+/**
+ * D1 stub whose row fetch and COUNT(*) can be made to disagree — the short-read
+ * case the manifest-to-JSONL comparison cannot see, because both sides of that
+ * comparison come from the same fetched array.
+ */
+function stubDbWithCounts(counts: StubCounts): D1Database {
+  const makeRows = (count: number, prefix: string) =>
+    Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index}` }));
+
+  return {
+    prepare(sql: string) {
+      const isPrompt = sql.includes("checkin_prompt");
+      return {
+        async all() {
+          return {
+            results: isPrompt
+              ? makeRows(counts.promptRows, "prompt")
+              : makeRows(counts.responseRows, "response"),
+          };
+        },
+        async first() {
+          return {
+            row_count: isPrompt
+              ? counts.promptSourceCount
+              : counts.responseSourceCount,
+          };
+        },
+      };
+    },
+  } as unknown as D1Database;
 }
 
 async function seedPromptAndResponse(): Promise<void> {
@@ -186,6 +226,80 @@ describe("analytics extract snapshot", () => {
 
     const manifestObject = await bucket.get(buildManifestObjectKey(slot));
     expect(manifestObject).not.toBeNull();
+  });
+
+  it("records an independent D1 source count in the manifest", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+    await seedPromptAndResponse();
+
+    const now = new Date("2026-08-15T03:05:00.000Z");
+    const slot = buildExportSlot(now, 3, 0);
+    const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
+
+    expect(manifest.manifest_version).toBe(EXPORT_MANIFEST_VERSION);
+    expect(manifest.tables.checkin_prompt.source_row_count).toBe(1);
+    expect(manifest.tables.checkin_response.source_row_count).toBe(1);
+    expect(manifest.tables.checkin_prompt.source_row_count).toBe(
+      manifest.tables.checkin_prompt.row_count,
+    );
+    expect(manifest.tables.checkin_response.source_row_count).toBe(
+      manifest.tables.checkin_response.row_count,
+    );
+
+    const manifestObject = await bucket.get(buildManifestObjectKey(slot));
+    const written = JSON.parse(
+      new TextDecoder().decode(await manifestObject!.arrayBuffer()),
+    );
+    expect(written.tables.checkin_prompt.source_row_count).toBe(1);
+    expect(written.tables.checkin_response.source_row_count).toBe(1);
+  });
+
+  it("fails closed when a source count disagrees with the fetched rows", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+    const now = new Date("2026-08-15T03:05:00.000Z");
+    const slot = buildExportSlot(now, 3, 0);
+
+    const extractEnv: AnalyticsExtractEnv = {
+      DB: stubDbWithCounts({
+        promptRows: 2,
+        promptSourceCount: 3,
+        responseRows: 1,
+        responseSourceCount: 1,
+      }),
+      EXTRACT_BUCKET: bucket,
+    };
+
+    await expect(
+      executeAnalyticsExtract(extractEnv, slot, now),
+    ).rejects.toThrow(/analytics_extract_source_count_mismatch/);
+
+    // Nothing written at all: no JSONL objects and no manifest, so the slot
+    // shows up as a landing-zone gap rather than a complete-looking extract.
+    const listed = await bucket.list({ prefix: "raw/cloudflare/checkins/" });
+    expect(listed.objects).toHaveLength(0);
+  });
+
+  it("names every disagreeing table in the mismatch error", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+    const now = new Date("2026-08-15T03:05:00.000Z");
+    const slot = buildExportSlot(now, 3, 0);
+
+    const extractEnv: AnalyticsExtractEnv = {
+      DB: stubDbWithCounts({
+        promptRows: 2,
+        promptSourceCount: 3,
+        responseRows: 1,
+        responseSourceCount: 4,
+      }),
+      EXTRACT_BUCKET: bucket,
+    };
+
+    await expect(executeAnalyticsExtract(extractEnv, slot, now)).rejects.toThrow(
+      /checkin_prompt fetched=2 source=3; checkin_response fetched=1 source=4/,
+    );
   });
 
   it("is idempotent for the same slot — one file set after N invocations", async () => {

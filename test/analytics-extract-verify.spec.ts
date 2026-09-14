@@ -7,15 +7,18 @@ import {
 } from "../src/analytics-extract-verify";
 
 const sampleManifest: ExportManifest = {
+  manifest_version: 2,
   extraction_timestamp: "2026-08-15T03:05:00.000Z",
   tables: {
     checkin_prompt: {
       row_count: 2,
+      source_row_count: 2,
       object_key:
         "raw/cloudflare/checkins/checkin_prompt/extraction_date=2026-08-15/030000.jsonl.gz",
     },
     checkin_response: {
       row_count: 1,
+      source_row_count: 1,
       object_key:
         "raw/cloudflare/checkins/checkin_response/extraction_date=2026-08-15/030000.jsonl.gz",
     },
@@ -32,7 +35,49 @@ describe("validateManifestTieBack", () => {
   it("reports mismatches per table", () => {
     const result = validateManifestTieBack(sampleManifest, 1, 0);
     expect(result.ok).toBe(false);
-    expect(result.errors).toHaveLength(2);
+    // Each table disagrees with both the manifest row_count and the source count.
+    expect(result.errors).toHaveLength(4);
+    expect(result.withoutSourceCount).toHaveLength(0);
+  });
+
+  it("catches a source count that disagrees with the landed rows", () => {
+    // The short-read shape: the worker fetched and wrote 2 rows, but D1 held 3.
+    // manifest row_count and the JSONL agree, so only the source count sees it.
+    const shortRead: ExportManifest = {
+      ...sampleManifest,
+      tables: {
+        ...sampleManifest.tables,
+        checkin_prompt: {
+          ...sampleManifest.tables.checkin_prompt,
+          source_row_count: 3,
+        },
+      },
+    };
+    const result = validateManifestTieBack(shortRead, 2, 1);
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((error) => error.includes("source_row_count 3")),
+    ).toBe(true);
+  });
+
+  it("flags manifest_version 1 artifacts as lacking a source count", () => {
+    const legacy: ExportManifest = {
+      extraction_timestamp: sampleManifest.extraction_timestamp,
+      tables: {
+        checkin_prompt: {
+          row_count: 2,
+          object_key: sampleManifest.tables.checkin_prompt.object_key,
+        },
+        checkin_response: {
+          row_count: 1,
+          object_key: sampleManifest.tables.checkin_response.object_key,
+        },
+      },
+    };
+    const result = validateManifestTieBack(legacy, 2, 1);
+    // Still passes the manifest-to-jsonl check, but says what it cannot prove.
+    expect(result.ok).toBe(true);
+    expect(result.withoutSourceCount).toEqual(["checkin_prompt", "checkin_response"]);
   });
 
   it("rejects unexpected object key prefixes", () => {
@@ -42,6 +87,7 @@ describe("validateManifestTieBack", () => {
         ...sampleManifest.tables,
         checkin_prompt: {
           row_count: 2,
+          source_row_count: 2,
           object_key: "wrong/prefix/file.jsonl.gz",
         },
       },

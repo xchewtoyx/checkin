@@ -216,3 +216,17 @@ export async function listAllResponsesForExport(
     .all<ExportedResponseRow>();
   return result.results ?? [];
 }
+
+export async function countAllPromptsForExport(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare("SELECT COUNT(*) AS row_count FROM checkin_prompt")
+    .first<{ row_count: number }>();
+  return row?.row_count ?? 0;
+}
+
+export async function countAllResponsesForExport(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare("SELECT COUNT(*) AS row_count FROM checkin_response")
+    .first<{ row_count: number }>();
+  return row?.row_count ?? 0;
+}
