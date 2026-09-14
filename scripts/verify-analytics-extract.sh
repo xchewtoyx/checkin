@@ -162,27 +162,35 @@ wrangler r2 object get "${BUCKET}/${RESPONSE_KEY}" --file "$TMP/response.jsonl.g
 # corrupt upload this check exists to catch. `|| true` was there because grep -c
 # exits 1 on a zero count, so the two failures have to be told apart rather than
 # both swallowed.
+# Decompress to a file, then count from that file. Two separate traps here:
+#   - `gunzip -c ... | grep -c '^' || true` discards gzip's exit status, so an
+#     object truncated after its payload but before its trailer emits every row,
+#     fails, and is still reported as a clean count.
+#   - `text=$(gunzip -c ...)` fixes that but strips every trailing newline, so a
+#     malformed object ending in a blank line counts one row short and ties back
+#     cleanly against a manifest that agrees with the short count.
+# Going through a file keeps gzip's status checkable and the bytes intact.
 count_jsonl_lines() {
-  local file="$1" text
+  local file="$1" decompressed="$2"
   if [ ! -s "$file" ]; then
     echo 0
     return
   fi
-  if ! text=$(gunzip -c "$file"); then
+  if ! gunzip -c "$file" > "$decompressed"; then
     return 1
   fi
-  if [ -z "$text" ]; then
+  if [ ! -s "$decompressed" ]; then
     echo 0
     return
   fi
-  printf '%s\n' "$text" | grep -c '^'
+  grep -c '^' "$decompressed"
 }
 
-if ! PROMPT_LINES=$(count_jsonl_lines "$TMP/prompt.jsonl.gz"); then
+if ! PROMPT_LINES=$(count_jsonl_lines "$TMP/prompt.jsonl.gz" "$TMP/prompt.jsonl"); then
   echo "checkin_prompt object failed to decompress (truncated or corrupt)" >&2
   exit 1
 fi
-if ! RESPONSE_LINES=$(count_jsonl_lines "$TMP/response.jsonl.gz"); then
+if ! RESPONSE_LINES=$(count_jsonl_lines "$TMP/response.jsonl.gz" "$TMP/response.jsonl"); then
   echo "checkin_response object failed to decompress (truncated or corrupt)" >&2
   exit 1
 fi
