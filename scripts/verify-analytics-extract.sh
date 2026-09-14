@@ -38,6 +38,12 @@ set -euo pipefail
 # rows were deleted or edited since extraction — it cannot detect a row mutated
 # in place afterwards.
 #
+# It can also report a false mismatch for an extract that was correct when it
+# was taken: submitted_at/created_at are stamped at request start, not at
+# commit, so a submission in flight across the export can carry a timestamp
+# inside the watermark while committing after the export read it. See issue #62
+# before treating a --d1 mismatch of one or two rows as a real failure.
+#
 # Requires: wrangler (authenticated), jq, gunzip. Uses remote R2 unless --local is
 # passed through WRANGLER_R2_FLAGS.
 #
