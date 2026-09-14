@@ -224,28 +224,24 @@ export async function executeAnalyticsExtract(
     throw new Error("extract_bucket_unconfigured");
   }
 
-  // Every read in this run is bounded by the same watermark, which is also what
-  // the manifest reports as extraction_timestamp. That makes the slot a defined
-  // set rather than "whatever was there when each query happened": the snapshot,
-  // the source counts, and any later as-of reconstruction all describe the same
-  // rows. Without it, a check-in submitted while this run is in flight lands in
-  // the snapshot but falls outside the timestamp the manifest claims.
+  // The prompt read is bounded by this watermark, which is also what the
+  // manifest reports as extraction_timestamp, so prompts are a defined set
+  // rather than "whatever was there when the query happened". Responses are
+  // deliberately unbounded — see listAllResponsesForExport for why bounding on
+  // the mutable submitted_at is worse than not bounding at all, and issue #62
+  // for the column that would fix it.
   const extractionTimestamp = now.toISOString();
 
   const prompts = await listAllPromptsForExport(env.DB, extractionTimestamp);
-  const responses = await listAllResponsesForExport(env.DB, extractionTimestamp);
+  const responses = await listAllResponsesForExport(env.DB);
 
   // Independent source counts: a separate SELECT COUNT(*) rather than
   // prompts.length, so a short read from the unpaged export query is visible.
   // Comparing the manifest against the JSONL alone cannot see it — both sides
-  // derive from the same in-memory array. Sharing the watermark with the fetch
-  // is what lets this be a fail-closed check: a concurrent write cannot move
-  // one side of the comparison without moving the other.
+  // derive from the same in-memory array. Each count carries the same bound as
+  // its fetch, so the comparison stays like-for-like.
   const promptSourceCount = await countAllPromptsForExport(env.DB, extractionTimestamp);
-  const responseSourceCount = await countAllResponsesForExport(
-    env.DB,
-    extractionTimestamp,
-  );
+  const responseSourceCount = await countAllResponsesForExport(env.DB);
 
   assertSourceCountsAgree(slot, [
     { table: "checkin_prompt", fetched: prompts.length, source: promptSourceCount },

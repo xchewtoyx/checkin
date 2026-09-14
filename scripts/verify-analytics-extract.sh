@@ -39,10 +39,14 @@ set -euo pipefail
 # in place afterwards.
 #
 # It can also report a false mismatch for an extract that was correct when it
-# was taken: submitted_at/created_at are stamped at request start, not at
-# commit, so a submission in flight across the export can carry a timestamp
-# inside the watermark while committing after the export read it. See issue #62
-# before treating a --d1 mismatch of one or two rows as a real failure.
+# was taken. Two reasons, both issue #62: submitted_at/created_at are stamped at
+# request start rather than at commit, so a submission in flight across the
+# export can carry a timestamp inside the watermark while committing after the
+# export read it; and checkin_response is exported unbounded (it has no
+# immutable creation column — bounding on the mutable submitted_at would drop
+# re-answered responses), so a response written mid-run lands in the slot while
+# falling outside this as-of query. Check for both before treating a --d1
+# mismatch of one or two rows as a real failure.
 #
 # Requires: wrangler (authenticated), jq, gunzip. Uses remote R2 unless --local is
 # passed through WRANGLER_R2_FLAGS.

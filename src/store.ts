@@ -192,15 +192,26 @@ export async function listResponses(
 }
 
 /**
- * Export reads are bounded by a watermark — the manifest's extraction_timestamp
- * — rather than being unbounded "everything right now" queries. The scheduled
- * handler captures that instant before it does any work, so rows can land while
- * the run is still in progress; without the bound the snapshot would include
- * rows stamped after the timestamp the manifest claims it was taken at, and no
- * later as-of query could reconstruct the same set. `checkin_prompt` is bounded
- * by created_at and `checkin_response` by submitted_at (write time, not the
- * user-reported observed_at, which can be backdated). Rows arriving mid-run are
- * picked up by the next slot; the extract is a full dump per slot.
+ * `checkin_prompt` is bounded by a watermark — the manifest's
+ * extraction_timestamp — rather than read as "everything right now". The
+ * scheduled handler captures that instant before it does any work, so rows can
+ * land while the run is still in progress; without the bound the snapshot would
+ * include rows stamped after the timestamp the manifest claims. `created_at` is
+ * never rewritten, so the bound only ever excludes rows that did not exist at
+ * the watermark. In practice it excludes nothing mid-run: the scheduler stamps
+ * created_at from the same `now` the watermark comes from, so prompts it creates
+ * during this run sit exactly on the boundary and are included.
+ *
+ * `checkin_response` is deliberately NOT bounded. Its only candidate column,
+ * submitted_at, is mutable: re-answering upserts the row and moves submitted_at
+ * forward, so a bound on it drops responses that existed long before the
+ * watermark and makes them look deleted for that slot — worse than the
+ * over-inclusion it would prevent, and invisible to every count check, since
+ * the COUNT carries the same predicate. observed_at is no better: it derives
+ * from prompt.sent_at and would admit responses that did not exist yet.
+ * Bounding responses correctly needs an immutable creation or commit column
+ * (issue #62). Until then a response written mid-run lands in this slot while
+ * falling outside the manifest's timestamp.
  */
 export async function listAllPromptsForExport(
   db: D1Database,
@@ -220,16 +231,13 @@ export async function listAllPromptsForExport(
 
 export async function listAllResponsesForExport(
   db: D1Database,
-  watermark: string,
 ): Promise<ExportedResponseRow[]> {
   const result = await db
     .prepare(
       `SELECT id, prompt_id, feeling, intensity, note, confidence, vocab_era, observed_at, submitted_at
        FROM checkin_response
-       WHERE submitted_at <= ?
        ORDER BY observed_at ASC`,
     )
-    .bind(watermark)
     .all<ExportedResponseRow>();
   return result.results ?? [];
 }
@@ -245,13 +253,9 @@ export async function countAllPromptsForExport(
   return row?.row_count ?? 0;
 }
 
-export async function countAllResponsesForExport(
-  db: D1Database,
-  watermark: string,
-): Promise<number> {
+export async function countAllResponsesForExport(db: D1Database): Promise<number> {
   const row = await db
-    .prepare("SELECT COUNT(*) AS row_count FROM checkin_response WHERE submitted_at <= ?")
-    .bind(watermark)
+    .prepare("SELECT COUNT(*) AS row_count FROM checkin_response")
     .first<{ row_count: number }>();
   return row?.row_count ?? 0;
 }

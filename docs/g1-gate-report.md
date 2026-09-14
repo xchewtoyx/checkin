@@ -144,22 +144,37 @@ whatever was in the table when each query ran, while the manifest reported a
 timestamp captured earlier in the scheduled handler. The two agree here, but
 that agreement was not guaranteed: a check-in submitted while the run was in
 flight would have landed in the snapshot yet fallen outside the timestamp the
-manifest claims. The export now bounds every read by that timestamp, so the
-snapshot and the source counts describe the same set, and a row arriving
-mid-run is picked up by the next slot.
+manifest claims.
 
-Two limits remain, and they are properties of how rows are written rather than
-of the extract ([#62](https://github.com/xchewtoyx/checkin/issues/62)). First,
+The export now bounds `checkin_prompt` by that timestamp. `created_at` is never
+rewritten, so the bound can only ever exclude rows that did not exist at the
+watermark — and mid-run it excludes nothing, since the scheduler stamps
+`created_at` from the same instant the watermark comes from.
+
+`checkin_response` is deliberately left unbounded. Its only candidate column,
+`submitted_at`, is mutable: re-answering upserts the row and moves
+`submitted_at` forward, so bounding on it drops responses that existed long
+before the watermark and makes them look **deleted** for that slot. Nothing
+catches it, because the `COUNT(*)` carries the same predicate and therefore
+agrees with the short JSONL. `observed_at` is no better — it derives from
+`prompt.sent_at`, so it would admit responses that did not exist yet. A
+response written mid-run therefore still lands in the slot while falling
+outside the manifest's timestamp; over-including a row is the lesser harm
+against appearing to delete one.
+
+Three limits remain, all properties of how rows are written rather than of the
+extract ([#62](https://github.com/xchewtoyx/checkin/issues/62)).
 `submitted_at` and `created_at` are stamped when the request starts, not when
 the write commits, so a submission in flight across an export can carry a
-timestamp inside the watermark while committing after the read — absent from
-the snapshot, present in a later as-of query. Second, `checkin_prompt.status`
-is mutated in place and unversioned, and the prompt query filters on the
-immutable `created_at`, so status is exported as it reads at extraction time,
-not as of the watermark: a prompt answered just after the watermark can appear
-`answered` in a slot whose response object does not yet carry the answer. An
-exported prompt's status should therefore be read as "status when the extract
-ran", and the as-of counts above as reconstruction rather than proof.
+timestamp inside the watermark while committing after the read.
+`checkin_prompt.status` is mutated in place and unversioned, and the prompt
+query filters on the immutable `created_at`, so status is exported as it reads
+at extraction time, not as of the watermark: a prompt answered just after the
+watermark can appear `answered` in a slot whose response object does not yet
+carry the answer. And `checkin_response` has no immutable creation column to
+bound on at all, which is why it is not bounded. An exported prompt's status
+should therefore be read as "status when the extract ran", and the as-of counts
+above as reconstruction rather than proof.
 
 **What each check proves.** The 28/28 result above is manifest-to-JSONL
 agreement only. Both sides of that comparison derive from the same

@@ -263,7 +263,7 @@ describe("analytics extract snapshot", () => {
     expect(written.tables.checkin_response.source_row_count).toBe(1);
   });
 
-  it("bounds the snapshot by the manifest's extraction_timestamp", async () => {
+  it("bounds prompts by the watermark but keeps every response", async () => {
     const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
 
     await env.DB.prepare("DELETE FROM checkin_response").run();
@@ -271,9 +271,9 @@ describe("analytics extract snapshot", () => {
     await seedPromptAndResponse();
 
     // A check-in submitted after the scheduled handler captured `now` but
-    // before the export reads run. Without a watermark it lands in the snapshot
-    // while falling outside the timestamp the manifest claims, so no later
-    // as-of query could reconstruct the same set.
+    // before the export reads run. Responses are not bounded, so it lands in
+    // this slot: over-inclusion is the accepted cost of never dropping a row
+    // whose submitted_at was moved forward by a re-answer (issue #62).
     await env.DB.prepare(
       `INSERT INTO checkin_response
        (id, prompt_id, feeling, intensity, note, confidence, observed_at, submitted_at)
@@ -295,27 +295,70 @@ describe("analytics extract snapshot", () => {
     const slot = buildExportSlot(now, 15, 0);
     const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
 
-    // Excluded from the snapshot and from the source count alike, so the
-    // fail-closed comparison does not trip on a concurrent write.
     expect(manifest.extraction_timestamp).toBe("2026-08-15T15:05:00.000Z");
+    expect(manifest.tables.checkin_response.row_count).toBe(2);
+    expect(manifest.tables.checkin_response.source_row_count).toBe(2);
+
+    // A prompt created after the watermark is excluded — created_at is never
+    // rewritten, so that bound can only ever drop rows that did not yet exist.
+    await env.DB.prepare(
+      `INSERT INTO checkin_prompt
+       (id, scheduled_for, sent_at, expires_at, response_token, notification_id, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        "prompt-after-watermark",
+        "2026-08-15T17:00:00.000Z",
+        null,
+        null,
+        "f".repeat(64),
+        null,
+        "pending",
+        "2026-08-15T15:06:00.000Z",
+      )
+      .run();
+
+    const second = new MemoryR2Bucket() as unknown as R2Bucket;
+    const laterManifest = await executeAnalyticsExtract(
+      createExtractEnv(second),
+      slot,
+      now,
+    );
+    expect(laterManifest.tables.checkin_prompt.row_count).toBe(1);
+  });
+
+  it("keeps a response edited after the watermark", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+    await seedPromptAndResponse();
+
+    // "Change answer" upserts the row and moves submitted_at forward. Bounding
+    // responses on that mutable column would drop a response that existed long
+    // before the watermark, and every count check would still pass, because the
+    // COUNT carries the same predicate — the row would simply look deleted for
+    // one slot.
+    await env.DB.prepare(
+      `UPDATE checkin_response
+       SET feeling = ?, submitted_at = ?
+       WHERE id = ?`,
+    )
+      .bind("tense", "2026-08-15T15:06:00.000Z", "response-test-1")
+      .run();
+
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
+    const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
+
     expect(manifest.tables.checkin_response.row_count).toBe(1);
     expect(manifest.tables.checkin_response.source_row_count).toBe(1);
 
     const responseObject = await bucket.get(
       manifest.tables.checkin_response.object_key,
     );
-    const lines = (await gunzipText(await responseObject!.arrayBuffer())).trim();
-    expect(lines).not.toContain("response-after-watermark");
-
-    // The next slot picks it up — nothing is lost, only deferred.
-    const laterBucket = new MemoryR2Bucket() as unknown as R2Bucket;
-    const later = new Date("2026-08-16T03:05:00.000Z");
-    const laterManifest = await executeAnalyticsExtract(
-      createExtractEnv(laterBucket),
-      buildExportSlot(later, 3, 0),
-      later,
-    );
-    expect(laterManifest.tables.checkin_response.row_count).toBe(2);
+    const text = await gunzipText(await responseObject!.arrayBuffer());
+    expect(text).toContain("response-test-1");
   });
 
   it("fails closed when a source count disagrees with the fetched rows", async () => {
