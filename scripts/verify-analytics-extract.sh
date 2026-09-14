@@ -235,21 +235,33 @@ d1_api() {
     "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database${path}" "$@"
 }
 
+# Filter by name server-side rather than listing and matching locally: the list
+# endpoint paginates, so on an account with more databases than fit on one page
+# a local match would report "could not resolve" for a database that exists.
 resolve_d1_database_id() {
   if [ -n "${D1_DATABASE_ID:-}" ]; then
     echo "$D1_DATABASE_ID"
     return
   fi
-  d1_api "" | jq -r --arg name "$D1_DATABASE" \
-    '.result[] | select(.name == $name) | .uuid'
+  d1_api "?name=${D1_DATABASE}" | jq -r --arg name "$D1_DATABASE" \
+    '.result[]? | select(.name == $name) | .uuid' | head -n 1
 }
 
+# The watermark is bound as a query parameter, never interpolated into the SQL.
+# It comes out of a manifest in R2 — data this script reads, not a value it
+# controls — so a corrupted or separately writable manifest carrying something
+# like `x' OR 1=1 --` would otherwise rewrite the predicate and have the as-of
+# check certify a count for the whole table. The format is also validated, so a
+# manifest with a mangled timestamp fails loudly instead of silently comparing
+# against a value that sorts unexpectedly.
 d1_count() {
-  local database_id="$1" table="$2" column="$3" sql
-  sql="SELECT COUNT(*) AS row_count FROM ${table} WHERE ${column} <= '${EXTRACTION_TIMESTAMP}';"
+  local database_id="$1" table="$2" column="$3"
   d1_api "/${database_id}/query" \
     -X POST -H "Content-Type: application/json" \
-    --data "$(jq -n --arg sql "$sql" '{sql: $sql}')" \
+    --data "$(jq -n \
+      --arg sql "SELECT COUNT(*) AS row_count FROM ${table} WHERE ${column} <= ?" \
+      --arg watermark "$EXTRACTION_TIMESTAMP" \
+      '{sql: $sql, params: [$watermark]}')" \
     | jq -r '.result[0].results[0].row_count // empty'
 }
 
@@ -282,6 +294,16 @@ check_d1_table() {
 if [ "$CHECK_D1" = "1" ]; then
   : "${CLOUDFLARE_API_TOKEN:?--d1 requires CLOUDFLARE_API_TOKEN}"
   : "${CLOUDFLARE_ACCOUNT_ID:?--d1 requires CLOUDFLARE_ACCOUNT_ID}"
+
+  # Canonical ISO-8601 UTC, as the worker writes it. Binding already stops the
+  # value reaching SQL as code; this stops a mangled one being compared as data.
+  case "$EXTRACTION_TIMESTAMP" in
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9]Z) ;;
+    *)
+      echo "manifest extraction_timestamp is not a canonical ISO-8601 UTC instant: ${EXTRACTION_TIMESTAMP}" >&2
+      exit 1
+      ;;
+  esac
 
   DATABASE_ID=$(resolve_d1_database_id)
   if [ -z "$DATABASE_ID" ]; then
