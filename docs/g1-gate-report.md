@@ -216,12 +216,26 @@ window.
 
 That argument is stronger than a bare "no gaps": the export window is 15
 minutes and matches the cron cadence, so a thrown handler is not retried
-inside its own slot, and the manifest is written last and so acts as a
-commit marker — a partial run leaves a detectable gap. But it remains an
-argument from absence. It proves no gap remained; it does not prove no
-failure occurred, and it does not cover a manual re-run inside the same
-15-minute window, where a failed invocation could log the event and a
-later invocation overwrite the slot cleanly.
+inside its own slot, and the manifest is written last, after both table
+objects. On a slot's **first** run that makes it a commit marker — nothing
+precedes it at that key, so a partial run leaves a detectable gap.
+
+The commit-marker property does not survive a re-run, and the gate evidence
+should not be read as if it did. Re-running an already-complete slot
+overwrites the table objects in place while the previous manifest still sits
+at its key, so a re-run that writes the prompt object and then fails leaves a
+manifest standing over mixed old and new table snapshots, with no gap to
+detect. The three-way count check catches that only when the row counts
+changed; a re-run at an unchanged row count is invisible to it. Closing this
+properly needs attempt-specific objects, or some other way to stop a stale
+manifest certifying partially overwritten files — tracked with the rest of the
+landing-zone self-description work in
+[#61](https://github.com/xchewtoyx/checkin/issues/61).
+
+So the evidence remains an argument from absence. It proves no gap remained;
+it does not prove no failure occurred, it does not cover a manual re-run
+inside the same 15-minute window, and for a re-run it does not even establish
+that the objects under a manifest all came from the same run.
 
 ## Verdict
 

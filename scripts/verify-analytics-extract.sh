@@ -117,25 +117,75 @@ if [ "$MANIFEST_VERSION_CLASS" = "invalid" ]; then
 fi
 PROMPT_KEY=$(jq -r '.tables.checkin_prompt.object_key' "$TMP/manifest.json")
 RESPONSE_KEY=$(jq -r '.tables.checkin_response.object_key' "$TMP/manifest.json")
-EXPECTED_PROMPT=$(jq -r '.tables.checkin_prompt.row_count' "$TMP/manifest.json")
-EXPECTED_RESPONSE=$(jq -r '.tables.checkin_response.row_count' "$TMP/manifest.json")
-SOURCE_PROMPT=$(jq -r '.tables.checkin_prompt.source_row_count // "absent"' "$TMP/manifest.json")
-SOURCE_RESPONSE=$(jq -r '.tables.checkin_response.source_row_count // "absent"' "$TMP/manifest.json")
+
+# Counts are validated as JSON before they are read, for the same reason as the
+# version: `jq -r` renders the string "1" identically to the number 1, so a
+# manifest with string-encoded counts would sail through the three-way
+# comparison. Missing is only legal for source_row_count, and is reported as
+# "absent" rather than defaulted, so the version gate decides what it means.
+count_field() {
+  local table="$1" field="$2" allow_absent="$3"
+  jq -r --arg table "$table" --arg field "$field" --arg absent "$allow_absent" '
+    .tables[$table][$field] as $value
+    | if $value == null then (if $absent == "yes" then "absent" else "invalid missing" end)
+      elif ($value | type) != "number" then "invalid " + ($value | type)
+      elif ($value | floor) != $value then "invalid non-integer"
+      elif $value < 0 then "invalid negative"
+      else ($value | tostring)
+      end' "$TMP/manifest.json"
+}
+
+read_count() {
+  local table="$1" field="$2" allow_absent="$3" value
+  value=$(count_field "$table" "$field" "$allow_absent")
+  case "$value" in
+    invalid*)
+      echo "${table}.${field} is not a non-negative integer: ${value#invalid }" >&2
+      exit 1
+      ;;
+  esac
+  echo "$value"
+}
+
+EXPECTED_PROMPT=$(read_count checkin_prompt row_count no)
+EXPECTED_RESPONSE=$(read_count checkin_response row_count no)
+SOURCE_PROMPT=$(read_count checkin_prompt source_row_count yes)
+SOURCE_RESPONSE=$(read_count checkin_response source_row_count yes)
 
 wrangler r2 object get "${BUCKET}/${PROMPT_KEY}" --file "$TMP/prompt.jsonl.gz" ${WRANGLER_R2_FLAGS}
 wrangler r2 object get "${BUCKET}/${RESPONSE_KEY}" --file "$TMP/response.jsonl.gz" ${WRANGLER_R2_FLAGS}
 
+# Decompress fully and check gzip's own exit status before counting. A gzip
+# object truncated after its payload but before its trailer emits every row and
+# *then* fails; piping straight into `grep -c '^' || true` discarded that status
+# and returned the expected line count, so the verifier could certify exactly the
+# corrupt upload this check exists to catch. `|| true` was there because grep -c
+# exits 1 on a zero count, so the two failures have to be told apart rather than
+# both swallowed.
 count_jsonl_lines() {
-  local file="$1"
+  local file="$1" text
   if [ ! -s "$file" ]; then
     echo 0
     return
   fi
-  gunzip -c "$file" | grep -c '^' || true
+  if ! text=$(gunzip -c "$file"); then
+    return 1
+  fi
+  if [ -z "$text" ]; then
+    echo 0
+    return
+  fi
+  printf '%s\n' "$text" | grep -c '^'
 }
 
-PROMPT_LINES=$(count_jsonl_lines "$TMP/prompt.jsonl.gz")
-RESPONSE_LINES=$(count_jsonl_lines "$TMP/response.jsonl.gz")
+if ! PROMPT_LINES=$(count_jsonl_lines "$TMP/prompt.jsonl.gz"); then
+  echo "checkin_prompt object failed to decompress (truncated or corrupt)" >&2
+  exit 1
+fi
+if ! RESPONSE_LINES=$(count_jsonl_lines "$TMP/response.jsonl.gz"); then
+  echo "checkin_response object failed to decompress (truncated or corrupt)" >&2
+  exit 1
+fi
 
 FAILED=0
 LEGACY=0
