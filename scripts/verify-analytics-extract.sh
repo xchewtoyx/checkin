@@ -81,30 +81,34 @@ trap 'rm -rf "$TMP"' EXIT
 wrangler r2 object get "${BUCKET}/${MANIFEST_KEY}" --file "$TMP/manifest.json" ${WRANGLER_R2_FLAGS}
 
 EXTRACTION_TIMESTAMP=$(jq -r '.extraction_timestamp' "$TMP/manifest.json")
-# `.manifest_version // 1` would be wrong here: jq's // treats an explicit null
-# or false as absent and defaults them to 1, and -r renders the *string* "1"
-# identically to the number 1 — so a malformed manifest would enter the legacy
-# path. Only a genuinely absent field defaults; any other JSON type is reported
-# as invalid and rejected below.
-MANIFEST_VERSION=$(jq -r '
-  if (has("manifest_version") | not) then 1
-  elif (.manifest_version | type) == "number" then .manifest_version
-  else "invalid-" + (.manifest_version | type)
+# The manifest version is classified entirely in jq, and the shell only compares
+# the resulting label. Every step of this has to happen before the value reaches
+# bash:
+#   - `.manifest_version // 1` would default an explicit null or false to 1, and
+#     -r renders the string "1" identically to the number 1, so a malformed
+#     manifest would look absent and take the legacy path.
+#   - `[ "$v" -ge 2 ]` is bounded by the shell's signed integer range. An
+#     all-digit version too large for it (9999999999999999999) makes both the
+#     range test and the >= 2 test error out rather than fail; inside an `if`
+#     condition that is not fatal even under `set -e`, so the version would fall
+#     through to legacy and skip the source-count requirement.
+# An absent version means 1. A present one must be an integer >= 1. Version 1 is
+# legacy (manifest-to-JSONL only); every version from 2 up promises
+# source_row_count and is required to carry it.
+MANIFEST_VERSION_INFO=$(jq -r '
+  if (has("manifest_version") | not) then "legacy 1"
+  elif (.manifest_version | type) != "number" then "invalid " + (.manifest_version | type)
+  elif (.manifest_version | floor) != .manifest_version then "invalid non-integer"
+  elif .manifest_version < 1 then "invalid out-of-range"
+  elif .manifest_version < 2 then "legacy " + (.manifest_version | tostring)
+  else "strict " + (.manifest_version | tostring)
   end' "$TMP/manifest.json")
 
-# An absent manifest_version means 1. Anything else must be a positive integer:
-# 0, a negative number or a non-numeric string is a malformed artifact, and
-# accepting it would fall through to the legacy path and quietly verify with the
-# manifest-to-JSONL check alone. Versions above 2 are allowed through because
-# every version from 2 up promises source_row_count, which is enforced below.
-case "$MANIFEST_VERSION" in
-  ''|*[!0-9]*)
-    echo "unsupported manifest_version: '${MANIFEST_VERSION}'" >&2
-    exit 1
-    ;;
-esac
-if [ "$MANIFEST_VERSION" -lt 1 ]; then
-  echo "unsupported manifest_version: '${MANIFEST_VERSION}'" >&2
+MANIFEST_VERSION_CLASS="${MANIFEST_VERSION_INFO%% *}"
+MANIFEST_VERSION="${MANIFEST_VERSION_INFO#* }"
+
+if [ "$MANIFEST_VERSION_CLASS" = "invalid" ]; then
+  echo "unsupported manifest_version: ${MANIFEST_VERSION}" >&2
   exit 1
 fi
 PROMPT_KEY=$(jq -r '.tables.checkin_prompt.object_key' "$TMP/manifest.json")
@@ -147,8 +151,9 @@ check_table() {
   if [ "$source_count" = "absent" ]; then
     # Only a version 1 manifest is allowed to lack the source count. A manifest
     # declaring version 2 or later promises the tie-back, so a missing field
-    # there is a broken artifact, not a legacy one.
-    if [ "$MANIFEST_VERSION" -ge 2 ] 2>/dev/null; then
+    # there is a broken artifact, not a legacy one. The comparison was made in
+    # jq; this is a string test, so no version can slip past on integer range.
+    if [ "$MANIFEST_VERSION_CLASS" = "strict" ]; then
       report_fail "${table} manifest declares manifest_version ${MANIFEST_VERSION} but has no source_row_count"
       return
     fi
