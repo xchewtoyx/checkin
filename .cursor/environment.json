@@ -4,13 +4,19 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "user": "node",
+  "user": "ubuntu",
   "install": "npm ci",
-  "start": "npm run dev -- --ip 0.0.0.0",
   "ports": [
     {
       "name": "api",
       "port": 8787
+    }
+  ],
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev -- --ip 0.0.0.0",
+      "description": "Wrangler local Worker on port 8787"
     }
   ]
 }
