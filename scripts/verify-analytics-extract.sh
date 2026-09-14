@@ -297,13 +297,27 @@ if [ "$CHECK_D1" = "1" ]; then
 
   # Canonical ISO-8601 UTC, as the worker writes it. Binding already stops the
   # value reaching SQL as code; this stops a mangled one being compared as data.
-  case "$EXTRACTION_TIMESTAMP" in
-    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9]Z) ;;
-    *)
-      echo "manifest extraction_timestamp is not a canonical ISO-8601 UTC instant: ${EXTRACTION_TIMESTAMP}" >&2
-      exit 1
-      ;;
-  esac
+  # Shape alone is not enough: 9999-99-99T99:99:99.999Z matches any digit-wise
+  # pattern, and compared lexicographically it sorts after every real timestamp,
+  # so it would count the whole table and report a clean tie-back for an instant
+  # that does not exist. The value is round-tripped through jq's strptime/mktime
+  # so a calendar-invalid date normalises to something different and is caught
+  # (2026-02-31 -> 2026-03-03, and 2026-02-29 fails while 2024-02-29 passes).
+  # jq rather than `date -d`, which is GNU-only and absent on macOS.
+  TIMESTAMP_CHECK=$(jq -rn --arg ts "$EXTRACTION_TIMESTAMP" '
+    if ($ts | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$") | not)
+    then "invalid-shape"
+    else
+      ($ts | sub("\\.[0-9]{3}Z$"; "Z")) as $secs
+      | (try ($secs | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime | strftime("%Y-%m-%dT%H:%M:%SZ"))
+         catch "unparseable")
+      | if . == $secs then "valid" else "invalid-calendar" end
+    end')
+
+  if [ "$TIMESTAMP_CHECK" != "valid" ]; then
+    echo "manifest extraction_timestamp is not a valid ISO-8601 UTC instant (${TIMESTAMP_CHECK}): ${EXTRACTION_TIMESTAMP}" >&2
+    exit 1
+  fi
 
   DATABASE_ID=$(resolve_d1_database_id)
   if [ -z "$DATABASE_ID" ]; then
