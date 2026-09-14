@@ -104,6 +104,39 @@ describe("validateManifestTieBack", () => {
     ).toBe(true);
   });
 
+  it("rejects malformed manifest_version values", () => {
+    // parseExportManifest casts arbitrary JSON, so these all reach the
+    // validator at runtime. Treating any of them as legacy would verify a
+    // malformed artifact on the manifest-to-JSONL check alone.
+    for (const version of [0, -1, 1.5, "abc", null]) {
+      const broken = {
+        manifest_version: version,
+        extraction_timestamp: sampleManifest.extraction_timestamp,
+        tables: {
+          checkin_prompt: {
+            row_count: 2,
+            object_key: sampleManifest.tables.checkin_prompt.object_key,
+          },
+          checkin_response: {
+            row_count: 1,
+            object_key: sampleManifest.tables.checkin_response.object_key,
+          },
+        },
+      } as unknown as ExportManifest;
+      const result = validateManifestTieBack(broken, 2, 1);
+      expect(result.ok).toBe(false);
+      expect(result.withoutSourceCount).toHaveLength(0);
+      expect(
+        result.errors.some((error) => error.includes("unsupported manifest_version")),
+      ).toBe(true);
+    }
+  });
+
+  it("accepts a future version that still carries the source count", () => {
+    const future: ExportManifest = { ...sampleManifest, manifest_version: 3 };
+    expect(validateManifestTieBack(future, 2, 1).ok).toBe(true);
+  });
+
   it("rejects unexpected object key prefixes", () => {
     const badManifest: ExportManifest = {
       ...sampleManifest,

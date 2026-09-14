@@ -53,6 +53,25 @@ function checkTable(
   }
 }
 
+/**
+ * An absent manifest_version means 1. Any present value must be a positive
+ * integer: parseExportManifest casts arbitrary JSON without validating it, so 0,
+ * a negative number, null or a string can all reach here, and treating them as
+ * legacy would quietly verify a malformed artifact with the manifest-to-JSONL
+ * check alone. Versions above 2 are accepted — every version from 2 up promises
+ * source_row_count, and checkTable enforces that promise.
+ */
+function resolveManifestVersion(manifest: ExportManifest): number | null {
+  const raw = manifest.manifest_version as unknown;
+  if (raw === undefined) {
+    return 1;
+  }
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1) {
+    return null;
+  }
+  return raw;
+}
+
 export function validateManifestTieBack(
   manifest: ExportManifest,
   promptLineCount: number,
@@ -60,7 +79,17 @@ export function validateManifestTieBack(
 ): ManifestTieBackResult {
   const errors: string[] = [];
   const withoutSourceCount: string[] = [];
-  const manifestVersion = manifest.manifest_version ?? 1;
+
+  const manifestVersion = resolveManifestVersion(manifest);
+  if (manifestVersion === null) {
+    return {
+      ok: false,
+      errors: [
+        `unsupported manifest_version: ${JSON.stringify(manifest.manifest_version)}`,
+      ],
+      withoutSourceCount,
+    };
+  }
 
   checkTable(
     "checkin_prompt",
