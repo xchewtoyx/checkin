@@ -162,20 +162,22 @@ wrangler r2 object get "${BUCKET}/${RESPONSE_KEY}" --file "$TMP/response.jsonl.g
 # corrupt upload this check exists to catch. `|| true` was there because grep -c
 # exits 1 on a zero count, so the two failures have to be told apart rather than
 # both swallowed.
-# Decompress to a file, then count from that file. Two separate traps here:
+# Decompress to a file, then count from that file. gunzip is the only authority
+# on whether the object is intact, and the count comes from the bytes it wrote.
+# Three traps this shape avoids, each of which certified a broken object:
 #   - `gunzip -c ... | grep -c '^' || true` discards gzip's exit status, so an
 #     object truncated after its payload but before its trailer emits every row,
 #     fails, and is still reported as a clean count.
 #   - `text=$(gunzip -c ...)` fixes that but strips every trailing newline, so a
 #     malformed object ending in a blank line counts one row short and ties back
 #     cleanly against a manifest that agrees with the short count.
-# Going through a file keeps gzip's status checkable and the bytes intact.
+#   - Short-circuiting a zero-byte *compressed* object to 0 skips gunzip
+#     entirely. Zero bytes is never a valid gzip stream: the worker's empty
+#     export is gzip of an empty string, which is a valid ~20-byte object. So a
+#     zero-byte object is always a failed upload, and the emptiness test belongs
+#     on the decompressed output rather than the object.
 count_jsonl_lines() {
   local file="$1" decompressed="$2"
-  if [ ! -s "$file" ]; then
-    echo 0
-    return
-  fi
   if ! gunzip -c "$file" > "$decompressed"; then
     return 1
   fi
