@@ -71,7 +71,10 @@ function stubDbWithCounts(counts: StubCounts): D1Database {
   return {
     prepare(sql: string) {
       const isPrompt = sql.includes("checkin_prompt");
-      return {
+      const statement = {
+        bind() {
+          return statement;
+        },
         async all() {
           return {
             results: isPrompt
@@ -87,6 +90,7 @@ function stubDbWithCounts(counts: StubCounts): D1Database {
           };
         },
       };
+      return statement;
     },
   } as unknown as D1Database;
 }
@@ -191,8 +195,10 @@ describe("analytics extract snapshot", () => {
     const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
     await seedPromptAndResponse();
 
-    const now = new Date("2026-08-15T03:05:00.000Z");
-    const slot = buildExportSlot(now, 3, 0);
+    // The seeded rows are stamped 09:00, so they fall inside the 15:00 slot's
+    // watermark, not the 03:00 one.
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
     const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
 
     expect(manifest.tables.checkin_prompt.row_count).toBe(1);
@@ -235,8 +241,8 @@ describe("analytics extract snapshot", () => {
     await env.DB.prepare("DELETE FROM checkin_prompt").run();
     await seedPromptAndResponse();
 
-    const now = new Date("2026-08-15T03:05:00.000Z");
-    const slot = buildExportSlot(now, 3, 0);
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
     const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
 
     expect(manifest.manifest_version).toBe(EXPORT_MANIFEST_VERSION);
@@ -255,6 +261,61 @@ describe("analytics extract snapshot", () => {
     );
     expect(written.tables.checkin_prompt.source_row_count).toBe(1);
     expect(written.tables.checkin_response.source_row_count).toBe(1);
+  });
+
+  it("bounds the snapshot by the manifest's extraction_timestamp", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+    await seedPromptAndResponse();
+
+    // A check-in submitted after the scheduled handler captured `now` but
+    // before the export reads run. Without a watermark it lands in the snapshot
+    // while falling outside the timestamp the manifest claims, so no later
+    // as-of query could reconstruct the same set.
+    await env.DB.prepare(
+      `INSERT INTO checkin_response
+       (id, prompt_id, feeling, intensity, note, confidence, observed_at, submitted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        "response-after-watermark",
+        "prompt-test-1",
+        "calm",
+        5,
+        null,
+        "weak",
+        "2026-08-15T15:04:00.000Z",
+        "2026-08-15T15:06:00.000Z",
+      )
+      .run();
+
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
+    const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
+
+    // Excluded from the snapshot and from the source count alike, so the
+    // fail-closed comparison does not trip on a concurrent write.
+    expect(manifest.extraction_timestamp).toBe("2026-08-15T15:05:00.000Z");
+    expect(manifest.tables.checkin_response.row_count).toBe(1);
+    expect(manifest.tables.checkin_response.source_row_count).toBe(1);
+
+    const responseObject = await bucket.get(
+      manifest.tables.checkin_response.object_key,
+    );
+    const lines = (await gunzipText(await responseObject!.arrayBuffer())).trim();
+    expect(lines).not.toContain("response-after-watermark");
+
+    // The next slot picks it up — nothing is lost, only deferred.
+    const laterBucket = new MemoryR2Bucket() as unknown as R2Bucket;
+    const later = new Date("2026-08-16T03:05:00.000Z");
+    const laterManifest = await executeAnalyticsExtract(
+      createExtractEnv(laterBucket),
+      buildExportSlot(later, 3, 0),
+      later,
+    );
+    expect(laterManifest.tables.checkin_response.row_count).toBe(2);
   });
 
   it("fails closed when a source count disagrees with the fetched rows", async () => {

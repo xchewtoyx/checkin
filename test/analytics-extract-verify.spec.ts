@@ -80,6 +80,30 @@ describe("validateManifestTieBack", () => {
     expect(result.withoutSourceCount).toEqual(["checkin_prompt", "checkin_response"]);
   });
 
+  it("rejects a version 2 manifest that omits a source count", () => {
+    // Declaring version 2 promises the tie-back. Accepting a missing field here
+    // would silently drop back to the tautological manifest-to-JSONL check.
+    const broken: ExportManifest = {
+      manifest_version: 2,
+      extraction_timestamp: sampleManifest.extraction_timestamp,
+      tables: {
+        checkin_prompt: {
+          row_count: 2,
+          object_key: sampleManifest.tables.checkin_prompt.object_key,
+        },
+        checkin_response: sampleManifest.tables.checkin_response,
+      },
+    };
+    const result = validateManifestTieBack(broken, 2, 1);
+    expect(result.ok).toBe(false);
+    expect(result.withoutSourceCount).toHaveLength(0);
+    expect(
+      result.errors.some((error) =>
+        error.includes("declares manifest_version 2 but has no source_row_count"),
+      ),
+    ).toBe(true);
+  });
+
   it("rejects unexpected object key prefixes", () => {
     const badManifest: ExportManifest = {
       ...sampleManifest,

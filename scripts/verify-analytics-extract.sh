@@ -17,7 +17,8 @@ set -euo pipefail
 #
 # manifest_version 1 artifacts (written before the source count existed) carry
 # no source_row_count. Those are still verified (1) vs (2) and reported as
-# such, rather than failing.
+# such, rather than failing. A manifest that declares version 2 or later and
+# omits the field fails: the version is the promise that the tie-back is there.
 #
 # Usage:
 #   bash scripts/verify-analytics-extract.sh <manifest-object-key> [--d1]
@@ -74,6 +75,7 @@ trap 'rm -rf "$TMP"' EXIT
 wrangler r2 object get "${BUCKET}/${MANIFEST_KEY}" --file "$TMP/manifest.json" ${WRANGLER_R2_FLAGS}
 
 EXTRACTION_TIMESTAMP=$(jq -r '.extraction_timestamp' "$TMP/manifest.json")
+MANIFEST_VERSION=$(jq -r '.manifest_version // 1' "$TMP/manifest.json")
 PROMPT_KEY=$(jq -r '.tables.checkin_prompt.object_key' "$TMP/manifest.json")
 RESPONSE_KEY=$(jq -r '.tables.checkin_response.object_key' "$TMP/manifest.json")
 EXPECTED_PROMPT=$(jq -r '.tables.checkin_prompt.row_count' "$TMP/manifest.json")
@@ -112,7 +114,14 @@ check_table() {
   fi
 
   if [ "$source_count" = "absent" ]; then
-    echo "${table}: no source_row_count in manifest (manifest_version 1) — manifest-to-jsonl check only"
+    # Only a version 1 manifest is allowed to lack the source count. A manifest
+    # declaring version 2 or later promises the tie-back, so a missing field
+    # there is a broken artifact, not a legacy one.
+    if [ "$MANIFEST_VERSION" -ge 2 ] 2>/dev/null; then
+      report_fail "${table} manifest declares manifest_version ${MANIFEST_VERSION} but has no source_row_count"
+      return
+    fi
+    echo "${table}: no source_row_count in manifest (manifest_version ${MANIFEST_VERSION}) — manifest-to-jsonl check only"
     LEGACY=1
     return
   fi

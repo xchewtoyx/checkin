@@ -224,15 +224,28 @@ export async function executeAnalyticsExtract(
     throw new Error("extract_bucket_unconfigured");
   }
 
-  const prompts = await listAllPromptsForExport(env.DB);
-  const responses = await listAllResponsesForExport(env.DB);
+  // Every read in this run is bounded by the same watermark, which is also what
+  // the manifest reports as extraction_timestamp. That makes the slot a defined
+  // set rather than "whatever was there when each query happened": the snapshot,
+  // the source counts, and any later as-of reconstruction all describe the same
+  // rows. Without it, a check-in submitted while this run is in flight lands in
+  // the snapshot but falls outside the timestamp the manifest claims.
+  const extractionTimestamp = now.toISOString();
+
+  const prompts = await listAllPromptsForExport(env.DB, extractionTimestamp);
+  const responses = await listAllResponsesForExport(env.DB, extractionTimestamp);
 
   // Independent source counts: a separate SELECT COUNT(*) rather than
   // prompts.length, so a short read from the unpaged export query is visible.
   // Comparing the manifest against the JSONL alone cannot see it — both sides
-  // derive from the same in-memory array.
-  const promptSourceCount = await countAllPromptsForExport(env.DB);
-  const responseSourceCount = await countAllResponsesForExport(env.DB);
+  // derive from the same in-memory array. Sharing the watermark with the fetch
+  // is what lets this be a fail-closed check: a concurrent write cannot move
+  // one side of the comparison without moving the other.
+  const promptSourceCount = await countAllPromptsForExport(env.DB, extractionTimestamp);
+  const responseSourceCount = await countAllResponsesForExport(
+    env.DB,
+    extractionTimestamp,
+  );
 
   assertSourceCountsAgree(slot, [
     { table: "checkin_prompt", fetched: prompts.length, source: promptSourceCount },
@@ -242,7 +255,6 @@ export async function executeAnalyticsExtract(
   const promptKey = buildTableObjectKey("checkin_prompt", slot);
   const responseKey = buildTableObjectKey("checkin_response", slot);
   const manifestKey = buildManifestObjectKey(slot);
-  const extractionTimestamp = now.toISOString();
 
   const promptBody = await gzipText(serializeJsonl(prompts));
   const responseBody = await gzipText(serializeJsonl(responses));

@@ -139,6 +139,15 @@ status update are separate writes, so prompt status cannot stand in for a
 This reconstruction assumes no deletes or edits to those rows since
 extraction. It cannot detect a row that was mutated in place afterwards.
 
+The 14 gate-window slots were written by an unbounded export — it read
+whatever was in the table when each query ran, while the manifest reported a
+timestamp captured earlier in the scheduled handler. The two agree here, but
+that agreement was not guaranteed: a check-in submitted while the run was in
+flight would have landed in the snapshot yet fallen outside the timestamp the
+manifest claims. The export now bounds every read by that timestamp, so the
+snapshot, the source counts and any later as-of query describe the same set by
+construction, and a row arriving mid-run is picked up by the next slot.
+
 **What each check proves.** The 28/28 result above is manifest-to-JSONL
 agreement only. Both sides of that comparison derive from the same
 in-memory array in `executeAnalyticsExtract`, so it can catch a corrupt or
@@ -157,7 +166,9 @@ and instead shows up as a gap for the completeness check below.
 table and fails on any mismatch, with an opt-in `--d1` flag that runs the
 as-of count live so a historical slot can be checked without running the
 query by hand. The 14 gate-window manifests predate the field
-(`manifest_version` 1) and are verified two-way, as the script reports.
+(`manifest_version` 1) and are verified two-way, as the script reports; a
+manifest that declares version 2 and omits the field is a broken artifact and
+fails.
 
 **Unexplained extract failures: not evaluated.** The pre-committed
 condition was zero unexplained `analytics_extract_failed` events. That

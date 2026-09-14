@@ -15,6 +15,7 @@ function checkTable(
   table: string,
   entry: ExportTableManifest,
   lineCount: number,
+  manifestVersion: number,
   errors: string[],
   withoutSourceCount: string[],
 ): void {
@@ -25,6 +26,16 @@ function checkTable(
   }
 
   if (entry.source_row_count === undefined) {
+    // Only a version 1 manifest may lack the source count. Declaring version 2
+    // is the promise that the tie-back is present, so a missing field there is
+    // a broken artifact rather than a legacy one — accepting it would silently
+    // drop the check back to the tautological manifest-to-JSONL comparison.
+    if (manifestVersion >= 2) {
+      errors.push(
+        `${table} manifest declares manifest_version ${manifestVersion} but has no source_row_count`,
+      );
+      return;
+    }
     withoutSourceCount.push(table);
     return;
   }
@@ -49,11 +60,13 @@ export function validateManifestTieBack(
 ): ManifestTieBackResult {
   const errors: string[] = [];
   const withoutSourceCount: string[] = [];
+  const manifestVersion = manifest.manifest_version ?? 1;
 
   checkTable(
     "checkin_prompt",
     manifest.tables.checkin_prompt,
     promptLineCount,
+    manifestVersion,
     errors,
     withoutSourceCount,
   );
@@ -61,6 +74,7 @@ export function validateManifestTieBack(
     "checkin_response",
     manifest.tables.checkin_response,
     responseLineCount,
+    manifestVersion,
     errors,
     withoutSourceCount,
   );
