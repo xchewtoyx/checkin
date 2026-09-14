@@ -81,7 +81,16 @@ trap 'rm -rf "$TMP"' EXIT
 wrangler r2 object get "${BUCKET}/${MANIFEST_KEY}" --file "$TMP/manifest.json" ${WRANGLER_R2_FLAGS}
 
 EXTRACTION_TIMESTAMP=$(jq -r '.extraction_timestamp' "$TMP/manifest.json")
-MANIFEST_VERSION=$(jq -r '.manifest_version // 1' "$TMP/manifest.json")
+# `.manifest_version // 1` would be wrong here: jq's // treats an explicit null
+# or false as absent and defaults them to 1, and -r renders the *string* "1"
+# identically to the number 1 — so a malformed manifest would enter the legacy
+# path. Only a genuinely absent field defaults; any other JSON type is reported
+# as invalid and rejected below.
+MANIFEST_VERSION=$(jq -r '
+  if (has("manifest_version") | not) then 1
+  elif (.manifest_version | type) == "number" then .manifest_version
+  else "invalid-" + (.manifest_version | type)
+  end' "$TMP/manifest.json")
 
 # An absent manifest_version means 1. Anything else must be a positive integer:
 # 0, a negative number or a non-numeric string is a malformed artifact, and
