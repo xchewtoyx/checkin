@@ -82,6 +82,22 @@ wrangler r2 object get "${BUCKET}/${MANIFEST_KEY}" --file "$TMP/manifest.json" $
 
 EXTRACTION_TIMESTAMP=$(jq -r '.extraction_timestamp' "$TMP/manifest.json")
 MANIFEST_VERSION=$(jq -r '.manifest_version // 1' "$TMP/manifest.json")
+
+# An absent manifest_version means 1. Anything else must be a positive integer:
+# 0, a negative number or a non-numeric string is a malformed artifact, and
+# accepting it would fall through to the legacy path and quietly verify with the
+# manifest-to-JSONL check alone. Versions above 2 are allowed through because
+# every version from 2 up promises source_row_count, which is enforced below.
+case "$MANIFEST_VERSION" in
+  ''|*[!0-9]*)
+    echo "unsupported manifest_version: '${MANIFEST_VERSION}'" >&2
+    exit 1
+    ;;
+esac
+if [ "$MANIFEST_VERSION" -lt 1 ]; then
+  echo "unsupported manifest_version: '${MANIFEST_VERSION}'" >&2
+  exit 1
+fi
 PROMPT_KEY=$(jq -r '.tables.checkin_prompt.object_key' "$TMP/manifest.json")
 RESPONSE_KEY=$(jq -r '.tables.checkin_response.object_key' "$TMP/manifest.json")
 EXPECTED_PROMPT=$(jq -r '.tables.checkin_prompt.row_count' "$TMP/manifest.json")
@@ -169,6 +185,32 @@ d1_count() {
     | jq -r '.result[0].results[0].row_count // empty'
 }
 
+# Values are passed as separate quoted arguments rather than packed into one
+# whitespace-separated string: d1_count yields an empty value when the API
+# returns an error envelope, and word-splitting such a string would drop that
+# field, shift every later one, and abort under `set -u` before the
+# "count unavailable" branch below could report the real problem.
+check_d1_table() {
+  local table="$1" d1="$2" manifest_count="$3" jsonl_lines="$4" source_count="$5"
+
+  if [ -z "$d1" ] || [ "$d1" = "null" ]; then
+    report_fail "${table} d1 as-of count unavailable (check CLOUDFLARE_API_TOKEN and database access)"
+    return
+  fi
+
+  if [ "$d1" != "$manifest_count" ] || [ "$d1" != "$jsonl_lines" ]; then
+    report_fail "${table} d1 as-of mismatch: d1=${d1} manifest=${manifest_count} jsonl=${jsonl_lines}"
+    return
+  fi
+
+  if [ "$source_count" != "absent" ] && [ "$d1" != "$source_count" ]; then
+    report_fail "${table} d1 as-of mismatch: d1=${d1} source=${source_count}"
+    return
+  fi
+
+  echo "${table}: d1 as-of=${d1} ok"
+}
+
 if [ "$CHECK_D1" = "1" ]; then
   : "${CLOUDFLARE_API_TOKEN:?--d1 requires CLOUDFLARE_API_TOKEN}"
   : "${CLOUDFLARE_ACCOUNT_ID:?--d1 requires CLOUDFLARE_ACCOUNT_ID}"
@@ -183,29 +225,8 @@ if [ "$CHECK_D1" = "1" ]; then
   D1_PROMPT=$(d1_count "$DATABASE_ID" checkin_prompt created_at)
   D1_RESPONSE=$(d1_count "$DATABASE_ID" checkin_response submitted_at)
 
-  for spec in "checkin_prompt ${D1_PROMPT} ${EXPECTED_PROMPT} ${PROMPT_LINES} ${SOURCE_PROMPT}" \
-              "checkin_response ${D1_RESPONSE} ${EXPECTED_RESPONSE} ${RESPONSE_LINES} ${SOURCE_RESPONSE}"; do
-    # shellcheck disable=SC2086
-    set -- $spec
-    table="$1" d1="$2" manifest_count="$3" jsonl_lines="$4" source_count="$5"
-
-    if [ -z "$d1" ] || [ "$d1" = "null" ]; then
-      report_fail "${table} d1 as-of count unavailable"
-      continue
-    fi
-
-    if [ "$d1" != "$manifest_count" ] || [ "$d1" != "$jsonl_lines" ]; then
-      report_fail "${table} d1 as-of mismatch: d1=${d1} manifest=${manifest_count} jsonl=${jsonl_lines}"
-      continue
-    fi
-
-    if [ "$source_count" != "absent" ] && [ "$d1" != "$source_count" ]; then
-      report_fail "${table} d1 as-of mismatch: d1=${d1} source=${source_count}"
-      continue
-    fi
-
-    echo "${table}: d1 as-of=${d1} ok"
-  done
+  check_d1_table checkin_prompt "$D1_PROMPT" "$EXPECTED_PROMPT" "$PROMPT_LINES" "$SOURCE_PROMPT"
+  check_d1_table checkin_response "$D1_RESPONSE" "$EXPECTED_RESPONSE" "$RESPONSE_LINES" "$SOURCE_RESPONSE"
 fi
 
 if [ "$FAILED" != "0" ]; then
