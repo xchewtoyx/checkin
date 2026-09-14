@@ -2,6 +2,8 @@ import { log } from "./logger";
 import {
   ExportedPromptRow,
   ExportedResponseRow,
+  countAllPromptsForExport,
+  countAllResponsesForExport,
   listAllPromptsForExport,
   listAllResponsesForExport,
 } from "./store";
@@ -20,11 +22,31 @@ export interface AnalyticsExtractEnv {
   EXTRACT_BUCKET?: R2Bucket;
 }
 
+/**
+ * Manifest schema version. 1 (implicit, absent field) is every manifest written
+ * before the independent source-count check; 2 adds `source_row_count`.
+ */
+export const EXPORT_MANIFEST_VERSION = 2;
+
+export interface ExportTableManifest {
+  /** Rows serialized into the JSONL object. */
+  row_count: number;
+  /**
+   * Rows reported by a separate `SELECT COUNT(*)` against the source table —
+   * a different code path from the row fetch, so it can catch a short read the
+   * manifest/JSONL comparison cannot. Absent in manifest_version 1 artifacts.
+   */
+  source_row_count?: number;
+  object_key: string;
+}
+
 export interface ExportManifest {
+  /** Absent in manifest_version 1 artifacts written before the source count. */
+  manifest_version?: number;
   extraction_timestamp: string;
   tables: {
-    checkin_prompt: { row_count: number; object_key: string };
-    checkin_response: { row_count: number; object_key: string };
+    checkin_prompt: ExportTableManifest;
+    checkin_response: ExportTableManifest;
   };
 }
 
@@ -128,21 +150,69 @@ export async function countJsonlLines(data: ArrayBuffer): Promise<number> {
   return text.trimEnd().split("\n").length;
 }
 
+export interface ExportTableCounts {
+  objectKey: string;
+  rowCount: number;
+  sourceRowCount: number;
+}
+
 export function buildManifest(
   slot: ExportSlot,
   extractionTimestamp: string,
-  promptKey: string,
-  promptCount: number,
-  responseKey: string,
-  responseCount: number,
+  prompt: ExportTableCounts,
+  response: ExportTableCounts,
 ): ExportManifest {
   return {
+    manifest_version: EXPORT_MANIFEST_VERSION,
     extraction_timestamp: extractionTimestamp,
     tables: {
-      checkin_prompt: { row_count: promptCount, object_key: promptKey },
-      checkin_response: { row_count: responseCount, object_key: responseKey },
+      checkin_prompt: {
+        row_count: prompt.rowCount,
+        source_row_count: prompt.sourceRowCount,
+        object_key: prompt.objectKey,
+      },
+      checkin_response: {
+        row_count: response.rowCount,
+        source_row_count: response.sourceRowCount,
+        object_key: response.objectKey,
+      },
     },
   };
+}
+
+export interface SourceCountCheck {
+  table: "checkin_prompt" | "checkin_response";
+  /** Rows the export query returned. */
+  fetched: number;
+  /** Rows the independent SELECT COUNT(*) reported. */
+  source: number;
+}
+
+/**
+ * Fail closed on a source-count disagreement: throw before anything is written,
+ * so a short read never lands as a complete-looking slot. The cost is that a
+ * transient skew between the fetch and the count loses the slot, which then
+ * shows up as a gap for landing-zone completeness checks to catch.
+ */
+export function assertSourceCountsAgree(
+  slot: ExportSlot,
+  checks: SourceCountCheck[],
+): void {
+  const mismatched = checks.filter((check) => check.fetched !== check.source);
+  if (mismatched.length === 0) {
+    return;
+  }
+
+  const detail = mismatched
+    .map((check) => `${check.table} fetched=${check.fetched} source=${check.source}`)
+    .join("; ");
+
+  log("error", "analytics_extract_source_count_mismatch", {
+    extraction_date: slot.extractionDate,
+    detail,
+  });
+
+  throw new Error(`analytics_extract_source_count_mismatch: ${detail}`);
 }
 
 export async function executeAnalyticsExtract(
@@ -154,13 +224,33 @@ export async function executeAnalyticsExtract(
     throw new Error("extract_bucket_unconfigured");
   }
 
-  const prompts = await listAllPromptsForExport(env.DB);
+  // The prompt read is bounded by this watermark, which is also what the
+  // manifest reports as extraction_timestamp, so prompts are a defined set
+  // rather than "whatever was there when the query happened". Responses are
+  // deliberately unbounded — see listAllResponsesForExport for why bounding on
+  // the mutable submitted_at is worse than not bounding at all, and issue #62
+  // for the column that would fix it.
+  const extractionTimestamp = now.toISOString();
+
+  const prompts = await listAllPromptsForExport(env.DB, extractionTimestamp);
   const responses = await listAllResponsesForExport(env.DB);
+
+  // Independent source counts: a separate SELECT COUNT(*) rather than
+  // prompts.length, so a short read from the unpaged export query is visible.
+  // Comparing the manifest against the JSONL alone cannot see it — both sides
+  // derive from the same in-memory array. Each count carries the same bound as
+  // its fetch, so the comparison stays like-for-like.
+  const promptSourceCount = await countAllPromptsForExport(env.DB, extractionTimestamp);
+  const responseSourceCount = await countAllResponsesForExport(env.DB);
+
+  assertSourceCountsAgree(slot, [
+    { table: "checkin_prompt", fetched: prompts.length, source: promptSourceCount },
+    { table: "checkin_response", fetched: responses.length, source: responseSourceCount },
+  ]);
 
   const promptKey = buildTableObjectKey("checkin_prompt", slot);
   const responseKey = buildTableObjectKey("checkin_response", slot);
   const manifestKey = buildManifestObjectKey(slot);
-  const extractionTimestamp = now.toISOString();
 
   const promptBody = await gzipText(serializeJsonl(prompts));
   const responseBody = await gzipText(serializeJsonl(responses));
@@ -175,10 +265,12 @@ export async function executeAnalyticsExtract(
   const manifest = buildManifest(
     slot,
     extractionTimestamp,
-    promptKey,
-    prompts.length,
-    responseKey,
-    responses.length,
+    { objectKey: promptKey, rowCount: prompts.length, sourceRowCount: promptSourceCount },
+    {
+      objectKey: responseKey,
+      rowCount: responses.length,
+      sourceRowCount: responseSourceCount,
+    },
   );
 
   await env.EXTRACT_BUCKET.put(manifestKey, JSON.stringify(manifest, null, 2), {
@@ -189,6 +281,8 @@ export async function executeAnalyticsExtract(
     extraction_date: slot.extractionDate,
     prompt_count: prompts.length,
     response_count: responses.length,
+    prompt_source_count: promptSourceCount,
+    response_source_count: responseSourceCount,
     manifest_key: manifestKey,
   });
 

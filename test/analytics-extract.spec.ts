@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import {
   AnalyticsExtractEnv,
+  EXPORT_MANIFEST_VERSION,
   buildExportSlot,
   buildManifestObjectKey,
   buildTableObjectKey,
@@ -49,6 +50,49 @@ class MemoryR2Bucket {
 
 function createExtractEnv(bucket: R2Bucket): AnalyticsExtractEnv {
   return { DB: env.DB, EXTRACT_BUCKET: bucket };
+}
+
+interface StubCounts {
+  promptRows: number;
+  promptSourceCount: number;
+  responseRows: number;
+  responseSourceCount: number;
+}
+
+/**
+ * D1 stub whose row fetch and COUNT(*) can be made to disagree — the short-read
+ * case the manifest-to-JSONL comparison cannot see, because both sides of that
+ * comparison come from the same fetched array.
+ */
+function stubDbWithCounts(counts: StubCounts): D1Database {
+  const makeRows = (count: number, prefix: string) =>
+    Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index}` }));
+
+  return {
+    prepare(sql: string) {
+      const isPrompt = sql.includes("checkin_prompt");
+      const statement = {
+        bind() {
+          return statement;
+        },
+        async all() {
+          return {
+            results: isPrompt
+              ? makeRows(counts.promptRows, "prompt")
+              : makeRows(counts.responseRows, "response"),
+          };
+        },
+        async first() {
+          return {
+            row_count: isPrompt
+              ? counts.promptSourceCount
+              : counts.responseSourceCount,
+          };
+        },
+      };
+      return statement;
+    },
+  } as unknown as D1Database;
 }
 
 async function seedPromptAndResponse(): Promise<void> {
@@ -151,8 +195,10 @@ describe("analytics extract snapshot", () => {
     const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
     await seedPromptAndResponse();
 
-    const now = new Date("2026-08-15T03:05:00.000Z");
-    const slot = buildExportSlot(now, 3, 0);
+    // The seeded rows are stamped 09:00, so they fall inside the 15:00 slot's
+    // watermark, not the 03:00 one.
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
     const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
 
     expect(manifest.tables.checkin_prompt.row_count).toBe(1);
@@ -186,6 +232,178 @@ describe("analytics extract snapshot", () => {
 
     const manifestObject = await bucket.get(buildManifestObjectKey(slot));
     expect(manifestObject).not.toBeNull();
+  });
+
+  it("records an independent D1 source count in the manifest", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+    await seedPromptAndResponse();
+
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
+    const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
+
+    expect(manifest.manifest_version).toBe(EXPORT_MANIFEST_VERSION);
+    expect(manifest.tables.checkin_prompt.source_row_count).toBe(1);
+    expect(manifest.tables.checkin_response.source_row_count).toBe(1);
+    expect(manifest.tables.checkin_prompt.source_row_count).toBe(
+      manifest.tables.checkin_prompt.row_count,
+    );
+    expect(manifest.tables.checkin_response.source_row_count).toBe(
+      manifest.tables.checkin_response.row_count,
+    );
+
+    const manifestObject = await bucket.get(buildManifestObjectKey(slot));
+    const written = JSON.parse(
+      new TextDecoder().decode(await manifestObject!.arrayBuffer()),
+    );
+    expect(written.tables.checkin_prompt.source_row_count).toBe(1);
+    expect(written.tables.checkin_response.source_row_count).toBe(1);
+  });
+
+  it("bounds prompts by the watermark but keeps every response", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+    await seedPromptAndResponse();
+
+    // A check-in submitted after the scheduled handler captured `now` but
+    // before the export reads run. Responses are not bounded, so it lands in
+    // this slot: over-inclusion is the accepted cost of never dropping a row
+    // whose submitted_at was moved forward by a re-answer (issue #62).
+    await env.DB.prepare(
+      `INSERT INTO checkin_response
+       (id, prompt_id, feeling, intensity, note, confidence, observed_at, submitted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        "response-after-watermark",
+        "prompt-test-1",
+        "calm",
+        5,
+        null,
+        "weak",
+        "2026-08-15T15:04:00.000Z",
+        "2026-08-15T15:06:00.000Z",
+      )
+      .run();
+
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
+    const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
+
+    expect(manifest.extraction_timestamp).toBe("2026-08-15T15:05:00.000Z");
+    expect(manifest.tables.checkin_response.row_count).toBe(2);
+    expect(manifest.tables.checkin_response.source_row_count).toBe(2);
+
+    // A prompt created after the watermark is excluded — created_at is never
+    // rewritten, so that bound can only ever drop rows that did not yet exist.
+    await env.DB.prepare(
+      `INSERT INTO checkin_prompt
+       (id, scheduled_for, sent_at, expires_at, response_token, notification_id, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        "prompt-after-watermark",
+        "2026-08-15T17:00:00.000Z",
+        null,
+        null,
+        "f".repeat(64),
+        null,
+        "pending",
+        "2026-08-15T15:06:00.000Z",
+      )
+      .run();
+
+    const second = new MemoryR2Bucket() as unknown as R2Bucket;
+    const laterManifest = await executeAnalyticsExtract(
+      createExtractEnv(second),
+      slot,
+      now,
+    );
+    expect(laterManifest.tables.checkin_prompt.row_count).toBe(1);
+  });
+
+  it("keeps a response edited after the watermark", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+    await seedPromptAndResponse();
+
+    // "Change answer" upserts the row and moves submitted_at forward. Bounding
+    // responses on that mutable column would drop a response that existed long
+    // before the watermark, and every count check would still pass, because the
+    // COUNT carries the same predicate — the row would simply look deleted for
+    // one slot.
+    await env.DB.prepare(
+      `UPDATE checkin_response
+       SET feeling = ?, submitted_at = ?
+       WHERE id = ?`,
+    )
+      .bind("tense", "2026-08-15T15:06:00.000Z", "response-test-1")
+      .run();
+
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
+    const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
+
+    expect(manifest.tables.checkin_response.row_count).toBe(1);
+    expect(manifest.tables.checkin_response.source_row_count).toBe(1);
+
+    const responseObject = await bucket.get(
+      manifest.tables.checkin_response.object_key,
+    );
+    const text = await gunzipText(await responseObject!.arrayBuffer());
+    expect(text).toContain("response-test-1");
+  });
+
+  it("fails closed when a source count disagrees with the fetched rows", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+    const now = new Date("2026-08-15T03:05:00.000Z");
+    const slot = buildExportSlot(now, 3, 0);
+
+    const extractEnv: AnalyticsExtractEnv = {
+      DB: stubDbWithCounts({
+        promptRows: 2,
+        promptSourceCount: 3,
+        responseRows: 1,
+        responseSourceCount: 1,
+      }),
+      EXTRACT_BUCKET: bucket,
+    };
+
+    await expect(
+      executeAnalyticsExtract(extractEnv, slot, now),
+    ).rejects.toThrow(/analytics_extract_source_count_mismatch/);
+
+    // Nothing written at all: no JSONL objects and no manifest, so the slot
+    // shows up as a landing-zone gap rather than a complete-looking extract.
+    const listed = await bucket.list({ prefix: "raw/cloudflare/checkins/" });
+    expect(listed.objects).toHaveLength(0);
+  });
+
+  it("names every disagreeing table in the mismatch error", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+    const now = new Date("2026-08-15T03:05:00.000Z");
+    const slot = buildExportSlot(now, 3, 0);
+
+    const extractEnv: AnalyticsExtractEnv = {
+      DB: stubDbWithCounts({
+        promptRows: 2,
+        promptSourceCount: 3,
+        responseRows: 1,
+        responseSourceCount: 4,
+      }),
+      EXTRACT_BUCKET: bucket,
+    };
+
+    await expect(executeAnalyticsExtract(extractEnv, slot, now)).rejects.toThrow(
+      /checkin_prompt fetched=2 source=3; checkin_response fetched=1 source=4/,
+    );
   });
 
   it("is idempotent for the same slot — one file set after N invocations", async () => {

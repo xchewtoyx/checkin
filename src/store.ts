@@ -191,15 +191,40 @@ export async function listResponses(
   return result.results ?? [];
 }
 
+/**
+ * `checkin_prompt` is bounded by a watermark — the manifest's
+ * extraction_timestamp — rather than read as "everything right now". The
+ * scheduled handler captures that instant before it does any work, so rows can
+ * land while the run is still in progress; without the bound the snapshot would
+ * include rows stamped after the timestamp the manifest claims. `created_at` is
+ * never rewritten, so the bound only ever excludes rows that did not exist at
+ * the watermark. In practice it excludes nothing mid-run: the scheduler stamps
+ * created_at from the same `now` the watermark comes from, so prompts it creates
+ * during this run sit exactly on the boundary and are included.
+ *
+ * `checkin_response` is deliberately NOT bounded. Its only candidate column,
+ * submitted_at, is mutable: re-answering upserts the row and moves submitted_at
+ * forward, so a bound on it drops responses that existed long before the
+ * watermark and makes them look deleted for that slot — worse than the
+ * over-inclusion it would prevent, and invisible to every count check, since
+ * the COUNT carries the same predicate. observed_at is no better: it derives
+ * from prompt.sent_at and would admit responses that did not exist yet.
+ * Bounding responses correctly needs an immutable creation or commit column
+ * (issue #62). Until then a response written mid-run lands in this slot while
+ * falling outside the manifest's timestamp.
+ */
 export async function listAllPromptsForExport(
   db: D1Database,
+  watermark: string,
 ): Promise<ExportedPromptRow[]> {
   const result = await db
     .prepare(
       `SELECT id, scheduled_for, sent_at, expires_at, status, created_at
        FROM checkin_prompt
+       WHERE created_at <= ?
        ORDER BY created_at ASC`,
     )
+    .bind(watermark)
     .all<ExportedPromptRow>();
   return result.results ?? [];
 }
@@ -215,4 +240,22 @@ export async function listAllResponsesForExport(
     )
     .all<ExportedResponseRow>();
   return result.results ?? [];
+}
+
+export async function countAllPromptsForExport(
+  db: D1Database,
+  watermark: string,
+): Promise<number> {
+  const row = await db
+    .prepare("SELECT COUNT(*) AS row_count FROM checkin_prompt WHERE created_at <= ?")
+    .bind(watermark)
+    .first<{ row_count: number }>();
+  return row?.row_count ?? 0;
+}
+
+export async function countAllResponsesForExport(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare("SELECT COUNT(*) AS row_count FROM checkin_response")
+    .first<{ row_count: number }>();
+  return row?.row_count ?? 0;
 }
