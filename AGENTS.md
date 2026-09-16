@@ -37,10 +37,6 @@ npm run dev
 
 Deploy is automated on push to `main` — see [docs/deploy.md](docs/deploy.md) for required GitHub secrets and one-time setup.
 
-## Cursor Cloud
-
-Repo-managed environment: `.cursor/environment.json`. `install` is `npm ci` and must finish; Wrangler is the `dev` terminal (`--ip 0.0.0.0`, port 8787), not `start`. The image user is `ubuntu` (with sudo), not `node`.
-
 ## API (M2)
 
 - `GET /health` — liveness
