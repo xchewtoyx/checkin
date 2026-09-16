@@ -49,10 +49,10 @@ const STYLE = `
   main {
     max-width: 26rem;
     margin: 0 auto;
-    padding: 1.1rem 1.1rem 1.5rem;
+    padding: 0.7rem 1.1rem 0;
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
+    gap: 0.45rem;
   }
   .eyebrow {
     font-size: 0.72rem;
@@ -72,7 +72,7 @@ const STYLE = `
     letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--muted);
-    margin: 0 0 0.45rem;
+    margin: 0 0 0.3rem;
   }
   .ladder-row { display: none; }
   .ladder-row.visible { display: block; }
@@ -107,20 +107,33 @@ const STYLE = `
     color: color-mix(in oklab, var(--h) 62%, var(--ink));
     font-weight: 800;
   }
-  .note input {
+  .aux {
+    display: flex;
+    align-items: stretch;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  .aux input {
+    flex: 1;
+    min-width: 0;
     width: 100%;
     font: inherit;
     font-size: 1rem;
-    padding: 0.7rem 0.85rem;
+    padding: 0.55rem 0.7rem;
     border-radius: 0.7rem;
     border: 1px solid var(--line);
     background: var(--surface);
     color: var(--ink);
     min-height: 44px;
   }
-  .note input::placeholder { color: var(--muted); }
-  .confidence-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-  .confidence-row .toggle { display: flex; gap: 0.4rem; }
+  .aux input::placeholder { color: var(--muted); }
+  .confidence-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+  .confidence-row .toggle { display: flex; gap: 0.3rem; }
   .confidence-row button {
     appearance: none;
     font: inherit;
@@ -130,7 +143,7 @@ const STYLE = `
     border: 1px solid var(--line);
     background: var(--surface);
     color: var(--muted);
-    padding: 0.4rem 0.75rem;
+    padding: 0.4rem 0.55rem;
     min-height: 44px;
     cursor: pointer;
   }
@@ -140,7 +153,7 @@ const STYLE = `
     background: color-mix(in oklab, var(--focus) 14%, var(--surface));
     font-weight: 800;
   }
-  .intensity-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.45rem; }
+  .intensity-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.3rem; }
   .intensity-head .hint { color: var(--muted); font-size: 0.82rem; }
   .intensity {
     display: grid;
@@ -272,15 +285,12 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
       <p class="group-label">narrower still (optional)</p>
       <div class="chips" id="chips-2" role="group" aria-label="Most specific feelings"></div>
     </section>
-    <section class="note" id="form-note">
+    <section class="aux" id="form-note">
       <input id="note" type="text" maxlength="200" placeholder="Add a note (optional)" aria-label="Optional note">
-    </section>
-    <section id="form-confidence">
-      <div class="confidence-row">
-        <p class="eyebrow" style="margin:0">confidence</p>
+      <div class="confidence-row" id="form-confidence">
         <div class="toggle" id="confidence-toggle" role="group" aria-label="Confidence (optional)">
-          <button type="button" data-confidence="weak" aria-pressed="false">weak</button>
-          <button type="button" data-confidence="strong" aria-pressed="false">strong</button>
+          <button type="button" data-confidence="weak" aria-pressed="false" aria-label="weak confidence">weak</button>
+          <button type="button" data-confidence="strong" aria-pressed="false" aria-label="strong confidence">strong</button>
         </div>
       </div>
     </section>
