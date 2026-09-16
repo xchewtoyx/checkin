@@ -312,7 +312,7 @@ row, Chrome, deviceScaleFactor 1):**
 The three ladder rows, note, and confidence all sit above the fold. Submit
 does not. Fix is out of scope for the check (#40); recover ≥90 px so the
 intensity grid is fully tappable without scrolling
-([#64](https://github.com/xchewtoyx/checkin/issues/64) / CCP-663).
+([#64](https://github.com/xchewtoyx/checkin/issues/64) / CCP-662).
 
 ## 7. Tests
 
@@ -386,7 +386,7 @@ New/updated, by file:
 
    This issue is the check, not the redesign. The overflow and a separate
    fix scope are recorded on #40 / CCP-428; the layout work itself is
-   [#64](https://github.com/xchewtoyx/checkin/issues/64) / CCP-663.
+   [#64](https://github.com/xchewtoyx/checkin/issues/64) / CCP-662.
 
 ## 9. Suggested delivery order
 
