@@ -50,9 +50,9 @@ The original request arrived solution-first ("cloudflare workflow dumps d1 to r2
 - **F5 — Idempotent, replay-safe runs.** Export runs are keyed to their scheduled slot: object names derive from the slot's scheduled time, not the wall clock. A retried or duplicated run for the same slot rewrites its own keys with a fresh snapshot and can never touch another slot's objects.
   *Fit:* invoking the export N times for one slot leaves exactly one file set for that slot, and the downstream import result is identical to a single invocation.
 
-- **F6 — Audit tie-back.** Each run writes a manifest at `raw/cloudflare/checkins/manifests/extraction_date=YYYY-MM-DD/HHMMSS.json` recording the extraction timestamp and per-table row counts, and logs the same numbers.
+- **F6 — Audit tie-back.** Each run writes a manifest at `raw/cloudflare/checkins/manifests/extraction_date=YYYY-MM-DD/HHMMSS.json` recording the extraction timestamp, per-table `row_count` / `source_row_count`, and `source_count_mismatch`.
   *Rationale:* the export gets a defensible claim of matching the source, and a discrepancy is localizable to extract-vs-import rather than "somewhere in the pipeline."
-  *Fit:* manifest counts equal the line counts of the corresponding `.jsonl.gz` objects and D1 `COUNT(*)` at extraction time; a mismatch is detectable from the analytics side alone.
+  *Fit:* manifest counts equal the line counts of the corresponding `.jsonl.gz` objects and D1 `COUNT(*)` at extraction time; a mismatch is detectable from the analytics side alone. On `source_row_count != row_count` the worker still writes (fail open) and sets `source_count_mismatch`; consumers must check the flag. Fail-closed would produce a gap with no explanation, because the extract-failure event is an unqueryable Workers log line ([#61](https://github.com/xchewtoyx/checkin/issues/61)).
 
 ### Operational (first-class, per #1)
 

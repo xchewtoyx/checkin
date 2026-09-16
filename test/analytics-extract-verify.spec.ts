@@ -9,18 +9,21 @@ import {
 const sampleManifest: ExportManifest = {
   manifest_version: 2,
   extraction_timestamp: "2026-08-15T03:05:00.000Z",
+  source_count_mismatch: false,
   tables: {
     checkin_prompt: {
       row_count: 2,
       source_row_count: 2,
       object_key:
         "raw/cloudflare/checkins/checkin_prompt/extraction_date=2026-08-15/030000.jsonl.gz",
+      source_count_mismatch: false,
     },
     checkin_response: {
       row_count: 1,
       source_row_count: 1,
       object_key:
         "raw/cloudflare/checkins/checkin_response/extraction_date=2026-08-15/030000.jsonl.gz",
+      source_count_mismatch: false,
     },
   },
 };
@@ -45,11 +48,13 @@ describe("validateManifestTieBack", () => {
     // manifest row_count and the JSONL agree, so only the source count sees it.
     const shortRead: ExportManifest = {
       ...sampleManifest,
+      source_count_mismatch: true,
       tables: {
         ...sampleManifest.tables,
         checkin_prompt: {
           ...sampleManifest.tables.checkin_prompt,
           source_row_count: 3,
+          source_count_mismatch: true,
         },
       },
     };
