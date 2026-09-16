@@ -207,9 +207,10 @@ here as the actual layout, not a fallback held in reserve, because organic
 wrap already fails to beat it at the taxonomy's real worst case. Row height:
 3 rows × 2 lines × 44px min-height + gaps ≈ unchanged from today's 12-chip
 grid, which already wrapped to multiple lines — so the "one phone screen"
-NFR is not worse than the shipped baseline, though it should still be
-checked against the full assembled page (header + 3 rows + note +
-confidence + intensity) once built, per #32's own estimate caveat.
+NFR is not worse *at the ladder* than the shipped baseline. The assembled
+page (header + 3 rows + note + confidence + intensity) was checked in
+#40 / CCP-428: it **does not** fit 360×640 once all three rows are revealed
+(see §8 Q4).
 
 ## 5. Interaction layer — `src/checkin-page.ts`
 
@@ -292,6 +293,27 @@ All 258 words reachable in ≤ 3 selection taps (core, middle, outer) plus the
 submitting intensity tap — satisfies "≤ 3 taps" read as taxonomy-navigation
 taps, consistent with how #32 phrases the acceptance criterion.
 
+**Assembled-page height (360×640 CSS px, `overloaded` → `boiling over` outer
+row, Chrome, deviceScaleFactor 1):**
+
+| Block | y-range (px) | Height |
+|---|---|---|
+| Header | 18–72 | 54 |
+| Core row | 86–205 | 118 |
+| Middle row | 219–339 | 120 |
+| Outer row | 354–472 | 118 |
+| Note | 486–534 | 48 |
+| Confidence | 548–592 | 44 |
+| Intensity (submit) | 607–727 | 121 |
+| Last intensity button bottom | 727 | — |
+| Content (`scrollHeight`) | — | **785** |
+| Overflow past 640 px fold | — | **145** (page) / **87** (submit) |
+
+The three ladder rows, note, and confidence all sit above the fold. Submit
+does not. Fix is out of scope for the check (#40); recover ≥90 px so the
+intensity grid is fully tappable without scrolling
+([#64](https://github.com/xchewtoyx/checkin/issues/64) / CCP-663).
+
 ## 7. Tests
 
 New/updated, by file:
@@ -352,12 +374,19 @@ New/updated, by file:
    its qualifier-parsing transform. That's a cross-repo action item, not
    something this proposal can complete — flagged for whoever picks up
    implementation to action against `xchewtoyx/checkin-analytics`.
-4. **Reduced page height vs. baseline.** §4's grid keeps ladder-row height
-   in line with today's wrapped 12-chip grid, but three rows plus note plus
-   confidence plus intensity is more vertical content than today's single
-   chip section. Worth an explicit one-phone-screen check against the
-   assembled page once built, per #32's own "estimated" caveat on that
-   acceptance criterion.
+4. **Reduced page height vs. baseline — closed, does not fit.** [#40 / CCP-428]
+   measured the assembled `renderCheckinPage` (not the §4 mockup) at
+   **360×640 CSS px**, worst case `overloaded` → `boiling over` → outer row
+   (`short fuse` selected). Result: **does not fit**. Content height is
+   **785 px**; the last intensity button (the submit target) sits **87 px**
+   below the fold (`bottom` 727 px). Intensity 1–5 start at y=633, so even
+   the first submit row is almost entirely off-screen. All three ladder
+   rows, the note, and confidence *are* fully visible. A 390×844 viewport
+   (typical modern phone) fits with ~119 px spare.
+
+   This issue is the check, not the redesign. The overflow and a separate
+   fix scope are recorded on #40 / CCP-428; the layout work itself is
+   [#64](https://github.com/xchewtoyx/checkin/issues/64) / CCP-663.
 
 ## 9. Suggested delivery order
 
