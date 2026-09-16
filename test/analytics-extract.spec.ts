@@ -246,6 +246,9 @@ describe("analytics extract snapshot", () => {
     const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
 
     expect(manifest.manifest_version).toBe(EXPORT_MANIFEST_VERSION);
+    expect(manifest.source_count_mismatch).toBe(false);
+    expect(manifest.tables.checkin_prompt.source_count_mismatch).toBe(false);
+    expect(manifest.tables.checkin_response.source_count_mismatch).toBe(false);
     expect(manifest.tables.checkin_prompt.source_row_count).toBe(1);
     expect(manifest.tables.checkin_response.source_row_count).toBe(1);
     expect(manifest.tables.checkin_prompt.source_row_count).toBe(
@@ -361,7 +364,7 @@ describe("analytics extract snapshot", () => {
     expect(text).toContain("response-test-1");
   });
 
-  it("fails closed when a source count disagrees with the fetched rows", async () => {
+  it("fails open when a source count disagrees with the fetched rows", async () => {
     const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
     const now = new Date("2026-08-15T03:05:00.000Z");
     const slot = buildExportSlot(now, 3, 0);
@@ -376,17 +379,58 @@ describe("analytics extract snapshot", () => {
       EXTRACT_BUCKET: bucket,
     };
 
-    await expect(
-      executeAnalyticsExtract(extractEnv, slot, now),
-    ).rejects.toThrow(/analytics_extract_source_count_mismatch/);
+    const logged: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
+    };
 
-    // Nothing written at all: no JSONL objects and no manifest, so the slot
-    // shows up as a landing-zone gap rather than a complete-looking extract.
+    let manifest;
+    try {
+      manifest = await executeAnalyticsExtract(extractEnv, slot, now);
+    } finally {
+      console.log = originalLog;
+    }
+
+    // Writes anyway: a gap with no explanation is worse because the only
+    // extract-failure event is an unqueryable Workers log line (issue #61).
+    expect(manifest.source_count_mismatch).toBe(true);
+    expect(manifest.tables.checkin_prompt.source_count_mismatch).toBe(true);
+    expect(manifest.tables.checkin_response.source_count_mismatch).toBe(false);
+    expect(manifest.tables.checkin_prompt.row_count).toBe(2);
+    expect(manifest.tables.checkin_prompt.source_row_count).toBe(3);
+    expect(manifest.tables.checkin_response.row_count).toBe(1);
+    expect(manifest.tables.checkin_response.source_row_count).toBe(1);
+
     const listed = await bucket.list({ prefix: "raw/cloudflare/checkins/" });
-    expect(listed.objects).toHaveLength(0);
+    expect(listed.objects.map((object) => object.key).sort()).toEqual(
+      [
+        "raw/cloudflare/checkins/checkin_prompt/extraction_date=2026-08-15/030000.jsonl.gz",
+        "raw/cloudflare/checkins/checkin_response/extraction_date=2026-08-15/030000.jsonl.gz",
+        "raw/cloudflare/checkins/manifests/extraction_date=2026-08-15/030000.json",
+      ].sort(),
+    );
+
+    const written = JSON.parse(
+      new TextDecoder().decode(
+        await (await bucket.get(buildManifestObjectKey(slot)))!.arrayBuffer(),
+      ),
+    );
+    expect(written.source_count_mismatch).toBe(true);
+    expect(written.tables.checkin_prompt.source_count_mismatch).toBe(true);
+    expect(written.tables.checkin_prompt.source_row_count).toBe(3);
+    expect(written.tables.checkin_prompt.row_count).toBe(2);
+
+    expect(
+      logged.some(
+        (line) =>
+          line.includes("analytics_extract_source_count_mismatch") &&
+          line.includes("checkin_prompt fetched=2 source=3"),
+      ),
+    ).toBe(true);
   });
 
-  it("names every disagreeing table in the mismatch error", async () => {
+  it("names every disagreeing table in the mismatch log and flag", async () => {
     const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
     const now = new Date("2026-08-15T03:05:00.000Z");
     const slot = buildExportSlot(now, 3, 0);
@@ -401,9 +445,34 @@ describe("analytics extract snapshot", () => {
       EXTRACT_BUCKET: bucket,
     };
 
-    await expect(executeAnalyticsExtract(extractEnv, slot, now)).rejects.toThrow(
-      /checkin_prompt fetched=2 source=3; checkin_response fetched=1 source=4/,
-    );
+    const logged: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
+    };
+
+    let manifest;
+    try {
+      manifest = await executeAnalyticsExtract(extractEnv, slot, now);
+    } finally {
+      console.log = originalLog;
+    }
+
+    expect(manifest.source_count_mismatch).toBe(true);
+    expect(manifest.tables.checkin_prompt.source_count_mismatch).toBe(true);
+    expect(manifest.tables.checkin_response.source_count_mismatch).toBe(true);
+    expect(
+      logged.some(
+        (line) =>
+          line.includes("analytics_extract_source_count_mismatch") &&
+          line.includes(
+            "checkin_prompt fetched=2 source=3; checkin_response fetched=1 source=4",
+          ),
+      ),
+    ).toBe(true);
+
+    const listed = await bucket.list({ prefix: "raw/cloudflare/checkins/" });
+    expect(listed.objects).toHaveLength(3);
   });
 
   it("is idempotent for the same slot — one file set after N invocations", async () => {

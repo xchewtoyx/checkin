@@ -55,7 +55,12 @@ Column names match D1 exactly, except `response_token` and `notification_id` are
 
 ## Tie-back verification (F6)
 
-After an export lands, confirm manifest counts match the gzipped JSONL line counts:
+After an export lands, confirm three numbers per table agree — manifest
+`row_count`, gunzipped JSONL line count, and manifest `source_row_count` —
+and that `source_count_mismatch` is false. The worker writes on a source-count
+disagreement (fail open) and records the mismatch in the manifest; a complete
+landing zone is not by itself a clean extract. `scripts/verify-analytics-extract.sh`
+fails on any numeric mismatch.
 
 ```bash
 # List manifests (consumer read-only token or operator wrangler auth)
@@ -66,7 +71,7 @@ bash scripts/verify-analytics-extract.sh \
   raw/cloudflare/checkins/manifests/extraction_date=YYYY-MM-DD/030000.json
 ```
 
-Expected output: `tie-back ok: prompt=N response=M manifest=...`
+Expected output: `tie-back ok (source=manifest=jsonl): prompt=N response=M manifest=...`
 
 ## Absence detection (N3)
 

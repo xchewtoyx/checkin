@@ -15,6 +15,11 @@ set -euo pipefail
 # in-memory array, so it can only catch a corrupt or truncated upload. (3) is
 # what ties the extract back to D1.
 #
+# The worker fails open on (1) != (3): it still writes the slot and sets
+# `source_count_mismatch` in the manifest. This script is the consumer-side
+# check of that flag — it fails on any of the three numbers disagreeing, so a
+# flagged slot does not pass tie-back.
+#
 # manifest_version 1 artifacts (written before the source count existed) carry
 # no source_row_count. Those are still verified (1) vs (2) and reported as
 # such, rather than failing. A manifest that declares version 2 or later and
