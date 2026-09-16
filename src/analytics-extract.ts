@@ -38,12 +38,23 @@ export interface ExportTableManifest {
    */
   source_row_count?: number;
   object_key: string;
+  /**
+   * True when `source_row_count` disagrees with `row_count`. The extract
+   * writes anyway (fail open); every consumer must check this flag.
+   */
+  source_count_mismatch?: boolean;
 }
 
 export interface ExportManifest {
   /** Absent in manifest_version 1 artifacts written before the source count. */
   manifest_version?: number;
   extraction_timestamp: string;
+  /**
+   * True when any table's `source_row_count` disagrees with `row_count`.
+   * Always present from manifest_version 2. Consumers must check this —
+   * mismatched data still lands.
+   */
+  source_count_mismatch?: boolean;
   tables: {
     checkin_prompt: ExportTableManifest;
     checkin_response: ExportTableManifest;
@@ -162,19 +173,24 @@ export function buildManifest(
   prompt: ExportTableCounts,
   response: ExportTableCounts,
 ): ExportManifest {
+  const promptMismatch = prompt.rowCount !== prompt.sourceRowCount;
+  const responseMismatch = response.rowCount !== response.sourceRowCount;
   return {
     manifest_version: EXPORT_MANIFEST_VERSION,
     extraction_timestamp: extractionTimestamp,
+    source_count_mismatch: promptMismatch || responseMismatch,
     tables: {
       checkin_prompt: {
         row_count: prompt.rowCount,
         source_row_count: prompt.sourceRowCount,
         object_key: prompt.objectKey,
+        source_count_mismatch: promptMismatch,
       },
       checkin_response: {
         row_count: response.rowCount,
         source_row_count: response.sourceRowCount,
         object_key: response.objectKey,
+        source_count_mismatch: responseMismatch,
       },
     },
   };
@@ -189,18 +205,22 @@ export interface SourceCountCheck {
 }
 
 /**
- * Fail closed on a source-count disagreement: throw before anything is written,
- * so a short read never lands as a complete-looking slot. The cost is that a
- * transient skew between the fetch and the count loses the slot, which then
- * shows up as a gap for landing-zone completeness checks to catch.
+ * Fail open on a source-count disagreement: log which tables disagreed, but
+ * do not throw. The extract writes the objects and records the mismatch in
+ * the manifest. Fail-closed would produce a landing-zone gap with no
+ * explanation — the only extract-failure event is an unqueryable Workers
+ * log line (issue #61).
+ *
+ * Consequence: mismatched data lands. Every manifest consumer must check
+ * `source_count_mismatch`.
  */
-export function assertSourceCountsAgree(
+export function flagSourceCountMismatches(
   slot: ExportSlot,
   checks: SourceCountCheck[],
-): void {
+): SourceCountCheck[] {
   const mismatched = checks.filter((check) => check.fetched !== check.source);
   if (mismatched.length === 0) {
-    return;
+    return [];
   }
 
   const detail = mismatched
@@ -212,7 +232,7 @@ export function assertSourceCountsAgree(
     detail,
   });
 
-  throw new Error(`analytics_extract_source_count_mismatch: ${detail}`);
+  return mismatched;
 }
 
 export async function executeAnalyticsExtract(
@@ -243,7 +263,7 @@ export async function executeAnalyticsExtract(
   const promptSourceCount = await countAllPromptsForExport(env.DB, extractionTimestamp);
   const responseSourceCount = await countAllResponsesForExport(env.DB);
 
-  assertSourceCountsAgree(slot, [
+  flagSourceCountMismatches(slot, [
     { table: "checkin_prompt", fetched: prompts.length, source: promptSourceCount },
     { table: "checkin_response", fetched: responses.length, source: responseSourceCount },
   ]);
@@ -283,6 +303,7 @@ export async function executeAnalyticsExtract(
     response_count: responses.length,
     prompt_source_count: promptSourceCount,
     response_source_count: responseSourceCount,
+    source_count_mismatch: manifest.source_count_mismatch === true,
     manifest_key: manifestKey,
   });
 

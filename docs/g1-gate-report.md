@@ -187,16 +187,21 @@ invisible until it is not.
 
 The extract now takes a separate `SELECT COUNT(*)` per table — a different
 code path from the row fetch — and records it in the manifest as
-`source_row_count` (`manifest_version` 2). On disagreement it fails closed:
-nothing is written, so a short read never lands as a complete-looking slot
-and instead shows up as a gap for the completeness check below.
-`scripts/verify-analytics-extract.sh` now compares all three numbers per
-table and fails on any mismatch, with an opt-in `--d1` flag that runs the
-as-of count live so a historical slot can be checked without running the
-query by hand. The 14 gate-window manifests predate the field
-(`manifest_version` 1) and are verified two-way, as the script reports; a
-manifest that declares version 2 and omits the field is a broken artifact and
-fails.
+`source_row_count` (`manifest_version` 2). On disagreement it **fails
+open**: it still writes the JSONL objects and the manifest, sets
+`source_count_mismatch` (top-level and per table), and logs
+`analytics_extract_source_count_mismatch`. It does not throw. Fail-closed
+would produce a landing-zone gap with no explanation of it, because the
+only extract-failure event is an unqueryable Workers log line
+([#61](https://github.com/xchewtoyx/checkin/issues/61)). Consequence
+accepted: mismatched data lands, and every manifest consumer must check
+the flag. `scripts/verify-analytics-extract.sh` compares all three numbers
+per table and fails on any mismatch, so a flagged slot does not pass
+tie-back. An opt-in `--d1` flag runs the as-of count live so a historical
+slot can be checked without running the query by hand. The 14 gate-window
+manifests predate the field (`manifest_version` 1) and are verified
+two-way, as the script reports; a manifest that declares version 2 and
+omits the field is a broken artifact and fails.
 
 **Unexplained extract failures: not evaluated.** The pre-committed
 condition was zero unexplained `analytics_extract_failed` events. That
