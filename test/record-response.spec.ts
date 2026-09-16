@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { recordResponse } from "../src/record-response";
 import { insertPrompt, PromptRow } from "../src/store";
 
@@ -237,5 +237,115 @@ describe("recordResponse — page-stamped vocabulary era", () => {
     const row = await fetchResponseRow("response-prompt-era-4");
     expect(row?.feeling).toBe("perplexed");
     expect(row?.vocab_era).toBe("E5");
+  });
+});
+
+describe("recordResponse — vocabulary allowlist", () => {
+  beforeEach(async () => {
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("accepts a current WHEEL word and stores it unchanged", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-vocab-current", "token-vocab-current"));
+
+    const result = await recordResponse(env.DB, {
+      token: "token-vocab-current",
+      feeling: "overstimmed",
+      intensity: 5,
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchResponseRow("response-prompt-vocab-current");
+    expect(row?.feeling).toBe("overstimmed");
+  });
+
+  it("accepts a retired E3 word and stores it verbatim", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-vocab-e3", "token-vocab-e3"));
+
+    const result = await recordResponse(env.DB, {
+      token: "token-vocab-e3",
+      feeling: "frazzled",
+      intensity: 7,
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchResponseRow("response-prompt-vocab-e3");
+    expect(row?.feeling).toBe("frazzled");
+  });
+
+  it("accepts an E1 word and stores it verbatim", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-vocab-e1", "token-vocab-e1"));
+
+    const result = await recordResponse(env.DB, {
+      token: "token-vocab-e1",
+      feeling: "stressed",
+      intensity: 8,
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchResponseRow("response-prompt-vocab-e1");
+    expect(row?.feeling).toBe("stressed");
+  });
+
+  it("rejects a junk string the same way as an out-of-range intensity", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-vocab-junk", "token-vocab-junk"));
+    const now = new Date("2026-08-15T09:10:00.000Z");
+
+    const junk = await recordResponse(env.DB, {
+      token: "token-vocab-junk",
+      feeling: "xyzzy-not-a-feeling",
+      intensity: 5,
+      now,
+    });
+    const intensity = await recordResponse(env.DB, {
+      token: "token-vocab-junk",
+      feeling: "calm",
+      intensity: 11,
+      now,
+    });
+
+    expect(junk).toEqual({ ok: false, reason: "invalid" });
+    expect(intensity).toEqual({ ok: false, reason: "invalid" });
+    expect(await fetchResponseRow("response-prompt-vocab-junk")).toBeNull();
+  });
+
+  it("logs the rejection per N4 without the feeling value", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-vocab-log", "token-vocab-log"));
+    const junkFeeling = "xyzzy-not-a-feeling";
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+      lines.push(args.map(String).join(" "));
+    });
+
+    const result = await recordResponse(env.DB, {
+      token: "token-vocab-log",
+      feeling: junkFeeling,
+      intensity: 4,
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result).toEqual({ ok: false, reason: "invalid" });
+    expect(lines.join("\n")).not.toContain(junkFeeling);
+
+    const rejected = lines.flatMap((line) => {
+      try {
+        const parsed = JSON.parse(line) as { event?: string; reason?: string };
+        return parsed.event === "response_rejected" ? [parsed] : [];
+      } catch {
+        return [];
+      }
+    });
+    expect(rejected).toEqual([
+      expect.objectContaining({ event: "response_rejected", reason: "invalid" }),
+    ]);
+    expect(JSON.stringify(rejected[0])).not.toContain(junkFeeling);
   });
 });
