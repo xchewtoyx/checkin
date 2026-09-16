@@ -128,6 +128,31 @@ describe("renderCheckinPage — progressive-disclosure ladder (#32)", () => {
     expect(html.match(/data-confidence="strong" aria-pressed="false"/)).not.toBeNull();
   });
 
+  it("packs note and confidence onto one row before intensity (#64 / CCP-664)", () => {
+    const html = renderCheckinPage(prompt, now);
+
+    const auxMatch = html.match(/<section class="aux"[\s\S]*?<\/section>/);
+    expect(auxMatch, "note and confidence should share one .aux section").not.toBeNull();
+    expect(auxMatch![0]).toContain('id="note"');
+    expect(auxMatch![0]).toContain('id="form-confidence"');
+    expect(auxMatch![0]).toContain('id="form-note"');
+
+    const auxIdx = html.indexOf('class="aux"');
+    const intensityIdx = html.indexOf('id="form-intensity"');
+    expect(auxIdx).toBeGreaterThan(-1);
+    expect(auxIdx).toBeLessThan(intensityIdx);
+  });
+
+  it("tightens vertical rhythm while keeping 44px tap targets (#64 / CCP-664)", () => {
+    const html = renderCheckinPage(prompt, now);
+
+    expect(html).toMatch(/main \{[^}]*gap: 0\.45rem;/s);
+    expect(html).toMatch(/\.chip \{[^}]*min-height: 44px;/s);
+    expect(html).toMatch(/\.aux input \{[^}]*min-height: 44px;/s);
+    expect(html).toMatch(/\.confidence-row button \{[^}]*min-height: 44px;/s);
+    expect(html).toMatch(/\.intensity button \{[^}]*min-height: 44px;/s);
+  });
+
   it("renders the expired page for an unusable prompt", () => {
     const html = renderCheckinPage({ ...prompt, status: "expired" }, now);
 

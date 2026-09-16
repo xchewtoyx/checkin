@@ -208,8 +208,8 @@ wrap already fails to beat it at the taxonomy's real worst case. Row height:
 grid, which already wrapped to multiple lines — so the "one phone screen"
 NFR is not worse *at the ladder* than the shipped baseline. The assembled
 page (header + 3 rows + note + confidence + intensity) was checked in
-#40 / CCP-428: it **does not** fit 360×640 once all three rows are revealed
-(see §8 Q4).
+#40 / CCP-428: it **did not** fit 360×640 once all three rows are revealed.
+Layout recovery (#64 / CCP-664) now fits that worst case — see §8 Q4.
 
 ## 5. Interaction layer — `src/checkin-page.ts`
 
@@ -293,25 +293,26 @@ submitting intensity tap — satisfies "≤ 3 taps" read as taxonomy-navigation
 taps, consistent with how #32 phrases the acceptance criterion.
 
 **Assembled-page height (360×640 CSS px, `overloaded` → `boiling over` outer
-row, Chrome, deviceScaleFactor 1):**
+row, Chrome, deviceScaleFactor 1), after #64 / CCP-664:**
 
 | Block | y-range (px) | Height |
 |---|---|---|
-| Header | 18–72 | 54 |
-| Core row | 86–205 | 118 |
-| Middle row | 219–339 | 120 |
-| Outer row | 354–472 | 118 |
-| Note | 486–534 | 48 |
-| Confidence | 548–592 | 44 |
-| Intensity (submit) | 607–727 | 121 |
-| Last intensity button bottom | 727 | — |
-| Content (`scrollHeight`) | — | **785** |
-| Overflow past 640 px fold | — | **145** (page) / **87** (submit) |
+| Header | 11–65 | 54 |
+| Core row | 73–188 | 116 |
+| Middle row | 196–314 | 118 |
+| Outer row | 321–437 | 116 |
+| Note + confidence (one row) | 444–488 | 44 |
+| Intensity (submit) | 495–613 | 118 |
+| Last intensity button bottom | **613** | — |
+| Status | 620–640 | 19 |
+| Content (`scrollHeight`) | — | **640** |
+| Overflow past 640 px fold | — | **0** |
 
-The three ladder rows, note, and confidence all sit above the fold. Submit
-does not. Fix is out of scope for the check (#40); recover ≥90 px so the
-intensity grid is fully tappable without scrolling
-([#64](https://github.com/xchewtoyx/checkin/issues/64) / CCP-662).
+The whole intensity grid sits 27 px above the fold. A 390×844 viewport still
+fits (last intensity button at 611 px, ~233 px spare). Change vs #40: `main`
+gap `0.9rem` → `0.45rem`, vertical padding tightened, and note + confidence
+share one 44 px row (confidence label is `aria-label` only so the note field
+stays usable at 360 px). Chip `min-height: 44px` is unchanged.
 
 ## 7. Tests
 
@@ -374,19 +375,23 @@ New/updated, by file:
    its qualifier-parsing transform. That's a cross-repo action item, not
    something this proposal can complete — flagged for whoever picks up
    implementation to action against `xchewtoyx/checkin-analytics`.
-4. **Reduced page height vs. baseline — closed, does not fit.** [#40 / CCP-428]
-   measured the assembled `renderCheckinPage` (not the §4 mockup) at
-   **360×640 CSS px**, worst case `overloaded` → `boiling over` → outer row
-   (`short fuse` selected). Result: **does not fit**. Content height is
-   **785 px**; the last intensity button (the submit target) sits **87 px**
-   below the fold (`bottom` 727 px). Intensity 1–5 start at y=633, so even
-   the first submit row is almost entirely off-screen. All three ladder
-   rows, the note, and confidence *are* fully visible. A 390×844 viewport
-   (typical modern phone) fits with ~119 px spare.
+4. **Reduced page height vs. baseline — closed, now fits.** [#40 / CCP-428]
+   measured the assembled `renderCheckinPage` at **360×640 CSS px**, worst
+   case `overloaded` → `boiling over` → outer row (`short fuse` selected):
+   content **785 px**, last intensity button at **727 px** (**87 px** below
+   the fold). [#64](https://github.com/xchewtoyx/checkin/issues/64) /
+   CCP-664 recovered that with spacing plus a shared note/confidence row.
+   Re-measured (Chrome, `deviceScaleFactor: 1`):
 
-   This issue is the check, not the redesign. The overflow and a separate
-   fix scope are recorded on #40 / CCP-428; the layout work itself is
-   [#64](https://github.com/xchewtoyx/checkin/issues/64) / CCP-662.
+   | | #40 | after #64 |
+   |---|---|---|
+   | Content height | 785 | **640** |
+   | Last intensity button bottom | 727 | **613** |
+   | Overflow (page / submit) | 145 / 87 | **0 / 0** |
+   | 390×844 last-button spare | ~119 | ~233 |
+
+   Tap targets remain ≥ 44 px. The 12-char chip `boiling over` still wraps
+   inside its cell; there is no horizontal page overflow.
 
 ## 9. Suggested delivery order
 
