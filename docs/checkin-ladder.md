@@ -130,11 +130,10 @@ out explicitly in the PR checklist.
   `"strong"`; anything else is `{ ok: false, reason: "invalid" }`, same
   pattern as the existing intensity-range check. Absent/`undefined` stays
   `null` — confidence is opt-in, never inferred.
-- No change to the taxonomy-membership question: the server still doesn't
-  validate that `feeling` is a real wheel word (it doesn't today either).
-  Given the ladder only ever *offers* real wheel words, this is low-risk to
-  leave as is; flagged as an open question in §8 rather than folded into
-  scope here.
+- No change to the taxonomy-membership question *in this slice*: the
+  server still didn't validate that `feeling` is a real wheel word. That
+  was flagged as open question 2 in §8 and closed later by #39 / CCP-427
+  (era-union allowlist in `recordResponse()`).
 
 ### 3.5 `src/index.ts`
 
@@ -342,11 +341,12 @@ New/updated, by file:
    vitest, or a lightweight Playwright spec, or accept coverage at the
    "row 1 renders correctly + reveal logic reviewed by hand" level for this
    round? The repo has no precedent either way.
-2. **Server-side taxonomy validation.** Should `recordResponse()` reject a
-   `feeling` that isn't a real `WHEEL` word, now that the client only ever
-   offers real words? Today it accepts anything (untouched by this
-   proposal); tightening it is a small, separate, low-risk follow-up if
-   wanted — not folded in here since neither #32 nor #27 asks for it.
+2. **Server-side taxonomy validation.** Closed by #39 / CCP-427:
+   `recordResponse()` now rejects a `feeling` outside the era-union
+   allowlist (current `WHEEL` plus retired words from
+   `docs/feelings-vocabulary.md`) with the same 4xx as an out-of-range
+   intensity. Accepted words are stored verbatim; era-to-current mapping
+   stays a downstream concern.
 3. **`checkin-analytics#1` cutover coordination.** #27 explicitly asks for
    the downstream consumer to be notified of the cutover date and update
    its qualifier-parsing transform. That's a cross-repo action item, not

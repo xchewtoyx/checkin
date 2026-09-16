@@ -22,6 +22,15 @@ lands between open and submit. Rows with `vocab_era = NULL` predate
 stamping — map those by deploy date, as before. Details in
 [`analytics-extract.md`](analytics-extract.md).
 
+`recordResponse()` accepts the **union** of the current `WHEEL` and every
+word the mapping tables below record as having been offered in an earlier
+era (plus E2's six cores). Anything outside that closed allowlist is
+rejected the same way an out-of-range intensity is. The retired-word list
+in `src/vocabulary.ts` is asserted against this document, so a mapping-table
+edit that introduces or drops a retired word fails CI until the list
+catches up. Words are stored verbatim; era-to-current mapping remains a
+downstream transform.
+
 ## Eras
 
 | Era | Introduced | Vocabulary | Source |

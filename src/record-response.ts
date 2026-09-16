@@ -7,6 +7,7 @@ import {
   upsertResponse,
   updatePromptStatus,
 } from "./store";
+import { isAllowedFeeling } from "./vocabulary";
 
 const CONFIDENCE_VALUES: Confidence[] = ["weak", "strong"];
 
@@ -51,14 +52,18 @@ export async function recordResponse(
   }
 
   if (input.intensity < 1 || input.intensity > 10) {
-    return { ok: false, reason: "invalid" };
+    return rejectInvalid(prompt.id);
+  }
+
+  if (!isAllowedFeeling(input.feeling)) {
+    return rejectInvalid(prompt.id);
   }
 
   if (
     input.confidence != null &&
     !CONFIDENCE_VALUES.includes(input.confidence as Confidence)
   ) {
-    return { ok: false, reason: "invalid" };
+    return rejectInvalid(prompt.id);
   }
 
   const vocabEra =
@@ -99,4 +104,11 @@ export function isPromptUsable(prompt: PromptRow, now: Date): boolean {
 
 export function expiresAtFrom(sentAt: Date): string {
   return new Date(sentAt.getTime() + TOKEN_TTL_HOURS * 60 * 60 * 1000).toISOString();
+}
+
+function rejectInvalid(promptId: string): RecordResponseResult {
+  // N4: log the rejection; never include the feeling value (or other
+  // user-authored payload) — that belongs in the structured export only.
+  log("warn", "response_rejected", { reason: "invalid", prompt_id: promptId });
+  return { ok: false, reason: "invalid" };
 }
