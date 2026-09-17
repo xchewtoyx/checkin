@@ -12,6 +12,7 @@ import {
   runAnalyticsExtract,
   shouldRunExport,
 } from "../src/analytics-extract";
+import { WHEEL_ERA } from "../src/feelings-wheel";
 import { NoopNotifier } from "../src/notifier";
 import { runScheduler } from "../src/scheduler";
 
@@ -228,10 +229,55 @@ describe("analytics extract snapshot", () => {
       id: "response-test-1",
       note: "after a walk",
       confidence: "weak",
+      vocab_era: null,
     });
+    expect(parsedResponse).toHaveProperty("vocab_era");
 
     const manifestObject = await bucket.get(buildManifestObjectKey(slot));
     expect(manifestObject).not.toBeNull();
+  });
+
+  it("exports vocab_era for every response, null for historical rows", async () => {
+    const bucket = new MemoryR2Bucket() as unknown as R2Bucket;
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+    await seedPromptAndResponse();
+    await env.DB.prepare(
+      `INSERT INTO checkin_response
+       (id, prompt_id, feeling, intensity, note, confidence, vocab_era, observed_at, submitted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        "response-test-stamped",
+        "prompt-test-1",
+        "calm",
+        4,
+        null,
+        null,
+        WHEEL_ERA,
+        "2026-08-15T09:06:00.000Z",
+        "2026-08-15T09:06:01.000Z",
+      )
+      .run();
+
+    const now = new Date("2026-08-15T15:05:00.000Z");
+    const slot = buildExportSlot(now, 15, 0);
+    const manifest = await executeAnalyticsExtract(createExtractEnv(bucket), slot, now);
+
+    const responseObject = await bucket.get(manifest.tables.checkin_response.object_key);
+    const lines = (await gunzipText(await responseObject!.arrayBuffer()))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { id: string; vocab_era: string | null });
+
+    expect(lines).toHaveLength(2);
+    expect(lines.every((row) => Object.prototype.hasOwnProperty.call(row, "vocab_era"))).toBe(
+      true,
+    );
+    expect(lines.find((row) => row.id === "response-test-1")?.vocab_era).toBeNull();
+    expect(lines.find((row) => row.id === "response-test-stamped")?.vocab_era).toBe(
+      WHEEL_ERA,
+    );
   });
 
   it("records an independent D1 source count in the manifest", async () => {

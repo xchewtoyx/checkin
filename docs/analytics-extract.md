@@ -116,22 +116,23 @@ per the rule above:
 
 - **`vocab_era`** (`TEXT`, nullable, `E1`…`En`) — the feelings-vocabulary
   era ([`feelings-vocabulary.md`](feelings-vocabulary.md) § Eras) of the
-  check-in page that served the recorded word. The Worker stamps
-  `VOCAB_ERA` into the page at **render** time and the submission carries
-  it back, so the value describes the wheel the author actually chose from
-  — not the code deployed at submit time. This matters exactly at
-  vocabulary deploys: a page opened before the deploy and submitted after
-  it correctly records the *prior* era. On re-submission ("Change answer",
-  same page) the era is re-stamped with the page's value, consistent with
-  `feeling` being overwritten in place.
+  wheel the author answered from. `WHEEL_ERA` (exported from
+  `src/feelings-wheel.ts` next to `WHEEL`) is stamped at **submit** time
+  when the client omits it. The check-in page also embeds `WHEEL_ERA` at
+  **render** time and the submission carries it back, so a page opened
+  before a vocabulary deploy and submitted after it records the *prior*
+  era rather than the code deployed at submit. On re-submission
+  ("Change answer", same page) the era is re-stamped with the page's
+  value, consistent with `feeling` being overwritten in place.
   **Downstream mapping rule:** when `vocab_era` is non-`NULL`, seed
   `dim_feeling` conformance from that era's mapping chain directly —
-  no deploy-time inference. `NULL` means the row predates stamping (or was
-  submitted from a page rendered by pre-stamp Worker code, per the same
-  no-timestamp-cutover caveat as `note` above): keep using the existing
-  deploy-date inference for those rows only. A malformed submitted value
-  is discarded to `NULL` at the write path (logged as
-  `vocab_era_discarded`), never stored.
+  no deploy-time inference. `NULL` means the row predates stamping (or
+  was written by pre-stamp Worker code during a migration/deploy window,
+  per the same no-timestamp-cutover caveat as `note` above): keep using
+  the existing deploy-date inference for those rows only. A malformed
+  submitted value is discarded to `NULL` at the write path (logged as
+  `vocab_era_discarded`), never stored. The D1/export key is `vocab_era`
+  (additive column from 0003); it is not renamed.
 
 ## 5. Design decisions
 

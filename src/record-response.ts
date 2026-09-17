@@ -1,4 +1,5 @@
 import { TOKEN_TTL_HOURS } from "./config";
+import { WHEEL_ERA } from "./feelings-wheel";
 import { log } from "./logger";
 import {
   Confidence,
@@ -11,9 +12,10 @@ import { isAllowedFeeling } from "./vocabulary";
 
 const CONFIDENCE_VALUES: Confidence[] = ["weak", "strong"];
 
-// Shape of the page-stamped vocabulary era (E1, E2, …). The era is
-// provenance metadata, not user data: a malformed value is dropped to NULL
-// (and logged) rather than rejecting the check-in that carries it.
+// Shape of a vocabulary era (E1, E2, …). The era is provenance metadata,
+// not user data: a malformed value is dropped to NULL (and logged) rather
+// than rejecting the check-in that carries it. When the client omits it,
+// recordResponse stamps WHEEL_ERA.
 const VOCAB_ERA_PATTERN = /^E\d{1,3}$/;
 
 export interface RecordResponseInput {
@@ -66,10 +68,7 @@ export async function recordResponse(
     return rejectInvalid(prompt.id);
   }
 
-  const vocabEra =
-    typeof input.vocabEra === "string" && VOCAB_ERA_PATTERN.test(input.vocabEra)
-      ? input.vocabEra
-      : null;
+  const vocabEra = resolveVocabEra(input.vocabEra);
   if (input.vocabEra != null && vocabEra === null) {
     log("warn", "vocab_era_discarded", { prompt_id: prompt.id });
   }
@@ -104,6 +103,13 @@ export function isPromptUsable(prompt: PromptRow, now: Date): boolean {
 
 export function expiresAtFrom(sentAt: Date): string {
   return new Date(sentAt.getTime() + TOKEN_TTL_HOURS * 60 * 60 * 1000).toISOString();
+}
+
+function resolveVocabEra(submitted: string | null | undefined): string | null {
+  if (submitted == null) {
+    return WHEEL_ERA;
+  }
+  return VOCAB_ERA_PATTERN.test(submitted) ? submitted : null;
 }
 
 function rejectInvalid(promptId: string): RecordResponseResult {

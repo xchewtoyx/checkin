@@ -5,6 +5,7 @@ import {
   parseExportQuery,
   serializeResponses,
 } from "../src/export";
+import { WHEEL_ERA } from "../src/feelings-wheel";
 
 describe("export auth", () => {
   it("parses bearer tokens", () => {
@@ -74,7 +75,7 @@ describe("export serialization", () => {
         intensity: 5,
         note: "before the meeting",
         confidence: "strong",
-        vocab_era: "E5",
+        vocab_era: WHEEL_ERA,
         observed_at: "2026-08-13T10:00:00.000Z",
         submitted_at: "2026-08-13T10:01:00.000Z",
       },
@@ -83,7 +84,7 @@ describe("export serialization", () => {
     const parsed = JSON.parse(json);
     expect(parsed[0].note).toBe("before the meeting");
     expect(parsed[0].confidence).toBe("strong");
-    expect(parsed[0].vocab_era).toBe("E5");
+    expect(parsed[0].vocab_era).toBe(WHEEL_ERA);
   });
 
   it("serializes note and confidence as null when unset", () => {

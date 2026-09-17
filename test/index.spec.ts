@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
+import { WHEEL_ERA } from "../src/feelings-wheel";
 import { insertPrompt, PromptRow } from "../src/store";
 
 describe("checkin worker", () => {
@@ -59,10 +60,17 @@ describe("POST /c/:token — vocabulary validation", () => {
     expect(stored).toBeNull();
   });
 
-  it("accepts a current wheel word", async () => {
+  it("accepts a current wheel word and stamps WHEEL_ERA", async () => {
     const response = await post({ feeling: "calm", intensity: 4 });
 
     expect(response.status).toBe(200);
     expect(await response.text()).toContain("Recorded");
+    const stored = await env.DB.prepare(
+      "SELECT feeling, vocab_era FROM checkin_response WHERE prompt_id = ?",
+    )
+      .bind(prompt.id)
+      .first<{ feeling: string; vocab_era: string | null }>();
+    expect(stored?.feeling).toBe("calm");
+    expect(stored?.vocab_era).toBe(WHEEL_ERA);
   });
 });
