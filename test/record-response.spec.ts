@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { WHEEL_ERA } from "../src/feelings-wheel";
 import { recordResponse } from "../src/record-response";
 import { insertPrompt, PromptRow } from "../src/store";
 
@@ -162,40 +163,41 @@ describe("recordResponse — note and confidence", () => {
   });
 });
 
-describe("recordResponse — page-stamped vocabulary era", () => {
+describe("recordResponse — vocabulary era stamp", () => {
   beforeEach(async () => {
     await env.DB.prepare("DELETE FROM checkin_response").run();
     await env.DB.prepare("DELETE FROM checkin_prompt").run();
   });
 
-  it("stores the era stamped into the submitting page", async () => {
+  it("stores vocabulary era equal to WHEEL_ERA on submit", async () => {
     await insertPrompt(env.DB, makePrompt("prompt-era-1", "token-era-1"));
 
     const result = await recordResponse(env.DB, {
       token: "token-era-1",
       feeling: "fearful",
       intensity: 5,
-      vocabEra: "E5",
       now: new Date("2026-08-15T09:10:00.000Z"),
     });
 
     expect(result.ok).toBe(true);
     const row = await fetchResponseRow("response-prompt-era-1");
-    expect(row?.vocab_era).toBe("E5");
+    expect(row?.vocab_era).toBe(WHEEL_ERA);
   });
 
-  it("stores null when the submission carries no era (pre-stamp page)", async () => {
-    await insertPrompt(env.DB, makePrompt("prompt-era-2", "token-era-2"));
+  it("stores the era stamped into the submitting page when it differs", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-era-page", "token-era-page"));
 
-    await recordResponse(env.DB, {
-      token: "token-era-2",
-      feeling: "calm",
-      intensity: 3,
+    const result = await recordResponse(env.DB, {
+      token: "token-era-page",
+      feeling: "fearful",
+      intensity: 5,
+      vocabEra: "E4",
       now: new Date("2026-08-15T09:10:00.000Z"),
     });
 
-    const row = await fetchResponseRow("response-prompt-era-2");
-    expect(row?.vocab_era).toBeNull();
+    expect(result.ok).toBe(true);
+    const row = await fetchResponseRow("response-prompt-era-page");
+    expect(row?.vocab_era).toBe("E4");
   });
 
   it("discards a malformed era to null without rejecting the check-in", async () => {
@@ -230,13 +232,13 @@ describe("recordResponse — page-stamped vocabulary era", () => {
       token: "token-era-4",
       feeling: "perplexed",
       intensity: 6,
-      vocabEra: "E5",
+      vocabEra: WHEEL_ERA,
       now,
     });
 
     const row = await fetchResponseRow("response-prompt-era-4");
     expect(row?.feeling).toBe("perplexed");
-    expect(row?.vocab_era).toBe("E5");
+    expect(row?.vocab_era).toBe(WHEEL_ERA);
   });
 });
 

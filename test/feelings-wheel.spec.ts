@@ -1,13 +1,28 @@
 import { describe, expect, it } from "vitest";
 import vocabularyDoc from "../docs/feelings-vocabulary.md?raw";
 import { renderCheckinPage } from "../src/checkin-page";
-import { LABEL_BUDGET, VOCAB_ERA, WHEEL } from "../src/feelings-wheel";
+import { LABEL_BUDGET, WHEEL, WHEEL_ERA, WheelSector } from "../src/feelings-wheel";
 import { PromptRow } from "../src/store";
 
 const allWords = WHEEL.flatMap((s) => [
   s.core,
   ...s.feelings.flatMap((f) => [f.word, ...f.finer]),
 ]);
+
+function vocabularyFingerprint(wheel: WheelSector[]): string {
+  const json = JSON.stringify(
+    wheel.map((sector) => [
+      sector.core,
+      sector.feelings.map((feeling) => [feeling.word, ...feeling.finer]),
+    ]),
+  );
+  let hash = 2166136261;
+  for (let i = 0; i < json.length; i++) {
+    hash ^= json.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${json.length}:${(hash >>> 0).toString(16)}`;
+}
 
 describe("taxonomy structure (issue #31)", () => {
   it("is a perfectly regular 6×6×6 tree", () => {
@@ -56,11 +71,24 @@ describe("taxonomy structure (issue #31)", () => {
     expect(valences.size).toBe(2);
   });
 
-  it("VOCAB_ERA matches the latest era in docs/feelings-vocabulary.md", () => {
+  it("WHEEL_ERA matches the latest era in docs/feelings-vocabulary.md", () => {
     const eras = [...vocabularyDoc.matchAll(/^\| (E\d+) \|/gm)].map((m) => m[1]);
     expect(eras.length).toBeGreaterThan(0);
     const latest = eras.sort((a, b) => Number(a.slice(1)) - Number(b.slice(1))).at(-1);
-    expect(VOCAB_ERA).toBe(latest);
+    expect(WHEEL_ERA).toBe(latest);
+  });
+
+  it("fails if WHEEL changes without WHEEL_ERA changing", () => {
+    // Pin the era next to a fingerprint of the word tree so a vocabulary
+    // revision that forgets the era bump fails in one assertion. Update both
+    // sides of the expected object in the same edit as WHEEL / WHEEL_ERA.
+    expect({
+      era: WHEEL_ERA,
+      fingerprint: vocabularyFingerprint(WHEEL),
+    }).toEqual({
+      era: "E5",
+      fingerprint: "2792:49cc1e8b",
+    });
   });
 });
 
@@ -115,8 +143,8 @@ describe("renderCheckinPage — progressive-disclosure ladder (#32)", () => {
   it("stamps the page with the vocabulary era for submission carry-back", () => {
     const html = renderCheckinPage(prompt, now);
 
-    expect(html).toContain(`var VOCAB_ERA = ${JSON.stringify(VOCAB_ERA)};`);
-    expect(html).toContain("vocab_era: VOCAB_ERA");
+    expect(html).toContain(`var WHEEL_ERA = ${JSON.stringify(WHEEL_ERA)};`);
+    expect(html).toContain("vocab_era: WHEEL_ERA");
   });
 
   it("renders an optional, unset-by-default confidence toggle", () => {

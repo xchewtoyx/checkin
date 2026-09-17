@@ -19,11 +19,11 @@ export interface WheelSector {
 export const LABEL_BUDGET = 12;
 
 // The vocabulary era of WHEEL (docs/feelings-vocabulary.md § Eras). Bump in
-// the same change as any vocabulary revision — the structural test asserts
-// this constant against the era table in the docs, so forgetting fails CI.
-// The check-in page embeds it and the submission carries it back, stamping
-// each response with the era of the page that served the words.
-export const VOCAB_ERA = "E5";
+// the same change as any vocabulary revision — the structural test pins this
+// constant to a fingerprint of WHEEL, so a vocab edit that forgets the era
+// bump fails CI. The check-in page embeds it and the submission carries it
+// back; recordResponse also stamps it when the client omits it.
+export const WHEEL_ERA = "E5";
 
 // The 6×6×6 feelings taxonomy (issue #31, revised E5): 6 cores × 6 middle
 // words × 6 outer words = 258 nodes, every word unique case-insensitively.
