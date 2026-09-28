@@ -4,6 +4,7 @@ export interface NotificationResult {
 
 export interface Notifier {
   sendCheckin(url: string): Promise<NotificationResult>;
+  sendAlert(title: string, message: string): Promise<NotificationResult>;
 }
 
 export class PushoverNotifier implements Notifier {
@@ -13,13 +14,23 @@ export class PushoverNotifier implements Notifier {
   ) {}
 
   async sendCheckin(url: string): Promise<NotificationResult> {
-    const body = new URLSearchParams({
-      token: this.token,
-      user: this.user,
+    return this.post({
       message: "Time for a mood check-in",
       title: "checkin",
       url,
       url_title: "Check in",
+    });
+  }
+
+  async sendAlert(title: string, message: string): Promise<NotificationResult> {
+    return this.post({ title, message });
+  }
+
+  private async post(fields: Record<string, string>): Promise<NotificationResult> {
+    const body = new URLSearchParams({
+      token: this.token,
+      user: this.user,
+      ...fields,
     });
 
     const response = await fetch("https://api.pushover.net/1/messages.json", {
@@ -43,6 +54,10 @@ export class PushoverNotifier implements Notifier {
 
 export class NoopNotifier implements Notifier {
   async sendCheckin(_url: string): Promise<NotificationResult> {
+    return { id: "noop" };
+  }
+
+  async sendAlert(_title: string, _message: string): Promise<NotificationResult> {
     return { id: "noop" };
   }
 }

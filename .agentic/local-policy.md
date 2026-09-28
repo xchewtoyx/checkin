@@ -9,6 +9,7 @@ Cloudflare Worker (TypeScript) with D1 persistence.
 
 - `src/index.ts` — Worker entry (`/health`, `/c/:token`, `/api/responses`, scheduled loop)
 - `src/scheduler.ts` — idempotent Europe/London scheduler
+- `src/answer-rate-alert.ts` — standing G1 answer-rate drift alert
 - `src/record-response.ts` — single write path for responses
 - `src/export.ts` — bearer-token JSON export
 - `migrations/` — D1 schema (checkin_prompt, checkin_response)

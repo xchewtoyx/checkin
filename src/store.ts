@@ -259,3 +259,88 @@ export async function countAllResponsesForExport(db: D1Database): Promise<number
     .first<{ row_count: number }>();
   return row?.row_count ?? 0;
 }
+
+export interface PromptStatusRow {
+  id: string;
+  status: PromptStatus;
+  expires_at: string | null;
+}
+
+/**
+ * Prompts whose id falls in `[startId, endIdExclusive)` — prompt ids are
+ * `prompt-YYYY-MM-DD-wN`, so a date prefix range is a London-calendar range.
+ */
+export async function listPromptsInIdRange(
+  db: D1Database,
+  startId: string,
+  endIdExclusive: string,
+): Promise<PromptStatusRow[]> {
+  const result = await db
+    .prepare(
+      `SELECT id, status, expires_at
+       FROM checkin_prompt
+       WHERE id >= ? AND id < ?
+       ORDER BY id ASC`,
+    )
+    .bind(startId, endIdExclusive)
+    .all<PromptStatusRow>();
+  return result.results ?? [];
+}
+
+export type AlertNotifiedStatus = "ok" | "breach";
+
+export interface AlertStateRow {
+  id: string;
+  notified_status: AlertNotifiedStatus | null;
+  evaluated_at: string;
+  answered: number;
+  sent: number;
+  rate: number | null;
+  window_from: string;
+  window_to: string;
+}
+
+export async function getAlertState(
+  db: D1Database,
+  id: string,
+): Promise<AlertStateRow | null> {
+  return db
+    .prepare(
+      `SELECT id, notified_status, evaluated_at, answered, sent, rate, window_from, window_to
+       FROM checkin_alert_state
+       WHERE id = ?`,
+    )
+    .bind(id)
+    .first<AlertStateRow>();
+}
+
+export async function upsertAlertState(
+  db: D1Database,
+  row: AlertStateRow,
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO checkin_alert_state
+        (id, notified_status, evaluated_at, answered, sent, rate, window_from, window_to)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         notified_status = excluded.notified_status,
+         evaluated_at = excluded.evaluated_at,
+         answered = excluded.answered,
+         sent = excluded.sent,
+         rate = excluded.rate,
+         window_from = excluded.window_from,
+         window_to = excluded.window_to`,
+    )
+    .bind(
+      row.id,
+      row.notified_status,
+      row.evaluated_at,
+      row.answered,
+      row.sent,
+      row.rate,
+      row.window_from,
+      row.window_to,
+    )
+    .run();
+}
