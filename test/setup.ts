@@ -27,4 +27,13 @@ beforeAll(async () => {
       submitted_at TEXT NOT NULL
     )`,
   ).run();
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS weekly_summary (
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      sent_at TEXT,
+      notification_id TEXT,
+      message TEXT
+    )`,
+  ).run();
 });

@@ -10,6 +10,7 @@ import { NoopNotifier, Notifier, PushoverNotifier } from "./notifier";
 import { recordResponse } from "./record-response";
 import { runScheduler, SchedulerEnv } from "./scheduler";
 import { getPromptByToken, listResponses } from "./store";
+import { runWeeklySummary } from "./weekly-summary";
 
 export interface Env extends SchedulerEnv {
   PUSHOVER_TOKEN?: string;
@@ -123,8 +124,17 @@ export default {
 
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
     const now = new Date();
+    const notifier = buildNotifier(env);
     log("info", "scheduler_run", {});
-    await runScheduler(env, buildNotifier(env), now);
+    await runScheduler(env, notifier, now);
+
+    try {
+      await runWeeklySummary(env, notifier, now);
+    } catch (error) {
+      log("error", "weekly_summary_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
 
     try {
       await runAnalyticsExtract(env, now);

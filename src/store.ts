@@ -259,3 +259,113 @@ export async function countAllResponsesForExport(db: D1Database): Promise<number
     .first<{ row_count: number }>();
   return row?.row_count ?? 0;
 }
+
+export async function listSentPromptsBetween(
+  db: D1Database,
+  fromIso: string,
+  toIsoExclusive: string,
+): Promise<PromptRow[]> {
+  const result = await db
+    .prepare(
+      `SELECT id, scheduled_for, sent_at, expires_at, response_token, notification_id, status, created_at
+       FROM checkin_prompt
+       WHERE scheduled_for >= ? AND scheduled_for < ? AND sent_at IS NOT NULL
+       ORDER BY scheduled_for ASC`,
+    )
+    .bind(fromIso, toIsoExclusive)
+    .all<PromptRow>();
+  return result.results ?? [];
+}
+
+export async function listResponsesForSentPromptsBetween(
+  db: D1Database,
+  fromIso: string,
+  toIsoExclusive: string,
+): Promise<ResponseRow[]> {
+  const result = await db
+    .prepare(
+      `SELECT r.id, r.prompt_id, r.feeling, r.intensity, r.note, r.confidence, r.vocab_era, r.observed_at, r.submitted_at
+       FROM checkin_response r
+       WHERE r.prompt_id IN (
+         SELECT id FROM checkin_prompt
+         WHERE scheduled_for >= ? AND scheduled_for < ? AND sent_at IS NOT NULL
+       )
+       ORDER BY r.observed_at ASC`,
+    )
+    .bind(fromIso, toIsoExclusive)
+    .all<ResponseRow>();
+  return result.results ?? [];
+}
+
+export interface WeeklySummaryRow {
+  id: string;
+  created_at: string;
+  sent_at: string | null;
+  notification_id: string | null;
+  message: string | null;
+}
+
+export async function getWeeklySummary(
+  db: D1Database,
+  id: string,
+): Promise<WeeklySummaryRow | null> {
+  return db
+    .prepare(
+      "SELECT id, created_at, sent_at, notification_id, message FROM weekly_summary WHERE id = ?",
+    )
+    .bind(id)
+    .first<WeeklySummaryRow>();
+}
+
+/**
+ * Claim the week for sending. Returns false when a completed send already
+ * exists. A row with no sent_at is treated as a retryable in-flight claim.
+ */
+export async function claimWeeklySummary(
+  db: D1Database,
+  id: string,
+  nowIso: string,
+): Promise<boolean> {
+  const existing = await getWeeklySummary(db, id);
+  if (existing?.sent_at) {
+    return false;
+  }
+  if (existing) {
+    return true;
+  }
+
+  const result = await db
+    .prepare("INSERT OR IGNORE INTO weekly_summary (id, created_at) VALUES (?, ?)")
+    .bind(id, nowIso)
+    .run();
+  if ((result.meta.changes ?? 0) > 0) {
+    return true;
+  }
+
+  const raced = await getWeeklySummary(db, id);
+  return raced !== null && raced.sent_at === null;
+}
+
+export async function completeWeeklySummary(
+  db: D1Database,
+  id: string,
+  notificationId: string,
+  message: string,
+  sentAt: string,
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE weekly_summary
+       SET sent_at = ?, notification_id = ?, message = ?
+       WHERE id = ?`,
+    )
+    .bind(sentAt, notificationId, message, id)
+    .run();
+}
+
+export async function releaseWeeklySummary(db: D1Database, id: string): Promise<void> {
+  await db
+    .prepare("DELETE FROM weekly_summary WHERE id = ? AND sent_at IS NULL")
+    .bind(id)
+    .run();
+}
