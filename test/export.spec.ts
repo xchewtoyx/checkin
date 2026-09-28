@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   authorizeExport,
+  authorizeReport,
   parseBearerToken,
   parseExportQuery,
   serializeResponses,
@@ -25,6 +26,29 @@ describe("export auth", () => {
       headers: { authorization: "Bearer secret-token" },
     });
     expect(authorizeExport(request, "secret-token")).toBe(true);
+  });
+});
+
+describe("report auth", () => {
+  it("fails closed when the expected token is unset", () => {
+    const request = new Request("http://example.com/report", {
+      headers: { authorization: "Bearer secret-token" },
+    });
+    expect(authorizeReport(request, undefined)).toBe(false);
+  });
+
+  it("accepts the export token as a Basic password", () => {
+    const request = new Request("http://example.com/report", {
+      headers: { authorization: `Basic ${btoa("anyone:secret-token")}` },
+    });
+    expect(authorizeReport(request, "secret-token")).toBe(true);
+  });
+
+  it("accepts a matching bearer token on the report route", () => {
+    const request = new Request("http://example.com/report", {
+      headers: { authorization: "Bearer secret-token" },
+    });
+    expect(authorizeReport(request, "secret-token")).toBe(true);
   });
 });
 
