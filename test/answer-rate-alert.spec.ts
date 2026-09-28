@@ -12,7 +12,7 @@ import {
   ANSWER_RATE_MIN_SENT_PROMPTS,
   ANSWER_RATE_THRESHOLD,
 } from "../src/config";
-import { NotificationResult, Notifier } from "../src/notifier";
+import { NoopNotifier, NotificationResult, Notifier } from "../src/notifier";
 import { PromptRow, PromptStatus, PromptStatusRow, getAlertState, insertPrompt } from "../src/store";
 
 function row(status: PromptStatus, expiresAt: string | null = "2026-09-15T20:00:00.000Z"): PromptStatusRow {
@@ -27,6 +27,7 @@ function closed(answered: number, expired: number): PromptStatusRow[] {
 }
 
 class RecordingNotifier implements Notifier {
+  readonly deliversNotifications = true;
   readonly alerts: { title: string; message: string }[] = [];
   failNext = false;
 
@@ -169,7 +170,7 @@ describe("formatAlertMessage", () => {
       from: "2026-09-15",
       to: "2026-09-28",
     })).toBe(
-      "Answer rate 35/41 (85.4%) over 2026-09-15 → 2026-09-28 recovered above the G1 75.0% threshold.",
+      "Answer rate 35/41 (85.4%) over 2026-09-15 → 2026-09-28 is back at or above the G1 75.0% threshold.",
     );
   });
 });
@@ -254,7 +255,7 @@ describe("runAnswerRateAlert", () => {
     const recovered = await runAnswerRateAlert(env, notifier, now);
     expect(recovered.status).toBe("ok");
     expect(notifier.alerts).toHaveLength(2);
-    expect(notifier.alerts[1].message).toContain("recovered above the G1 75.0% threshold");
+    expect(notifier.alerts[1].message).toContain("is back at or above the G1 75.0% threshold");
 
     const again = await runAnswerRateAlert(env, notifier, now);
     expect(again.status).toBe("ok");
@@ -301,6 +302,23 @@ describe("runAnswerRateAlert", () => {
     expect(verdict.status).toBe("ok");
     expect(verdict.sent).toBe(14);
     expect(notifier.alerts).toHaveLength(0);
+  });
+
+  it("does not record a breach while the notifier cannot deliver", async () => {
+    await seedClosed(30, 11);
+    const noop = new NoopNotifier();
+
+    const verdict = await runAnswerRateAlert(env, noop, now);
+    expect(verdict.status).toBe("breach");
+
+    const state = await getAlertState(env.DB, ANSWER_RATE_ALERT_ID);
+    expect(state?.notified_status).toBeNull();
+
+    const notifier = new RecordingNotifier();
+    await runAnswerRateAlert(env, notifier, now);
+    expect(notifier.alerts).toHaveLength(1);
+    const retried = await getAlertState(env.DB, ANSWER_RATE_ALERT_ID);
+    expect(retried?.notified_status).toBe("breach");
   });
 
   it("does not record a breach if the notice fails to send", async () => {

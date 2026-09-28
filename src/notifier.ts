@@ -3,11 +3,14 @@ export interface NotificationResult {
 }
 
 export interface Notifier {
+  readonly deliversNotifications: boolean;
   sendCheckin(url: string): Promise<NotificationResult>;
   sendAlert(title: string, message: string): Promise<NotificationResult>;
 }
 
 export class PushoverNotifier implements Notifier {
+  readonly deliversNotifications = true;
+
   constructor(
     private readonly token: string,
     private readonly user: string,
@@ -53,6 +56,8 @@ export class PushoverNotifier implements Notifier {
 }
 
 export class NoopNotifier implements Notifier {
+  readonly deliversNotifications = false;
+
   async sendCheckin(_url: string): Promise<NotificationResult> {
     return { id: "noop" };
   }

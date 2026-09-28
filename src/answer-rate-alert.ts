@@ -133,7 +133,7 @@ export function formatAlertMessage(
   if (notice === "breach") {
     return `Answer rate ${figure} over ${span} is below the G1 ${threshold} threshold.`;
   }
-  return `Answer rate ${figure} over ${span} recovered above the G1 ${threshold} threshold.`;
+  return `Answer rate ${figure} over ${span} is back at or above the G1 ${threshold} threshold.`;
 }
 
 export async function runAnswerRateAlert(
@@ -164,14 +164,18 @@ export async function runAnswerRateAlert(
 
   let notifiedStatus = previousStatus;
   if (notice && verdict.rate !== null) {
-    try {
-      await notifier.sendAlert("checkin answer rate", formatAlertMessage(notice, verdict, window));
-      notifiedStatus = notice === "breach" ? "breach" : "ok";
-      log("info", "answer_rate_alert_sent", { notice });
-    } catch (error) {
-      log("error", "answer_rate_alert_failed", {
-        error: error instanceof Error ? error.message : "unknown",
-      });
+    if (!notifier.deliversNotifications) {
+      log("info", "answer_rate_alert_skipped", { notice, reason: "no_delivering_notifier" });
+    } else {
+      try {
+        await notifier.sendAlert("checkin answer rate", formatAlertMessage(notice, verdict, window));
+        notifiedStatus = notice === "breach" ? "breach" : "ok";
+        log("info", "answer_rate_alert_sent", { notice });
+      } catch (error) {
+        log("error", "answer_rate_alert_failed", {
+          error: error instanceof Error ? error.message : "unknown",
+        });
+      }
     }
   } else if (verdict.status !== "unevaluable") {
     notifiedStatus = verdict.status;
