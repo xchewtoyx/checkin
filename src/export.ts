@@ -20,6 +20,42 @@ export function authorizeExport(
   return token === expectedToken;
 }
 
+export const REPORT_AUTH_CHALLENGE =
+  'Basic realm="checkin report", charset="UTF-8"';
+
+function parseBasicPassword(request: Request): string | null {
+  const header = request.headers.get("authorization");
+  if (!header?.startsWith("Basic ")) {
+    return null;
+  }
+  const encoded = header.slice("Basic ".length).trim();
+  if (encoded.length === 0) {
+    return null;
+  }
+  try {
+    const decoded = atob(encoded);
+    const separator = decoded.indexOf(":");
+    if (separator < 0) {
+      return null;
+    }
+    const password = decoded.slice(separator + 1);
+    return password.length > 0 ? password : null;
+  } catch {
+    return null;
+  }
+}
+
+export function authorizeReport(
+  request: Request,
+  expectedToken: string | undefined,
+): boolean {
+  if (!expectedToken) {
+    return false;
+  }
+  const presented = parseBearerToken(request) ?? parseBasicPassword(request);
+  return presented === expectedToken;
+}
+
 export interface ExportQuery {
   from?: string;
   to?: string;

@@ -3,9 +3,13 @@ import { renderCheckinPage, renderRecordedPage } from "./checkin-page";
 import { runAnalyticsExtract } from "./analytics-extract";
 import {
   authorizeExport,
+  authorizeReport,
+  REPORT_AUTH_CHALLENGE,
   parseExportQuery,
   serializeResponses,
 } from "./export";
+import { loadHealthFacts } from "./health-facts";
+import { assessHealth, renderHealthStrip } from "./health-strip";
 import { log } from "./logger";
 import { NoopNotifier, Notifier, PushoverNotifier } from "./notifier";
 import { recordResponse } from "./record-response";
@@ -103,6 +107,41 @@ async function handleCheckinToken(
   });
 }
 
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+async function handleReport(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") {
+    return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  const url = new URL(request.url);
+  if (url.protocol === "http:" && !LOCAL_HOSTNAMES.has(url.hostname)) {
+    url.protocol = "https:";
+    return Response.redirect(url.toString(), 308);
+  }
+
+  if (!authorizeReport(request, env.EXPORT_BEARER_TOKEN)) {
+    return new Response("Unauthorized", {
+      status: 401,
+      headers: { "www-authenticate": REPORT_AUTH_CHALLENGE },
+    });
+  }
+
+  const now = new Date();
+  const facts = await loadHealthFacts(
+    { DB: env.DB, EXTRACT_BUCKET: env.EXTRACT_BUCKET },
+    now,
+  );
+  const strip = assessHealth(facts);
+  return new Response(renderHealthStrip(strip), {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+    },
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -113,6 +152,10 @@ export default {
 
     if (url.pathname === "/api/responses") {
       return handleExportResponses(request, env);
+    }
+
+    if (url.pathname === "/report") {
+      return handleReport(request, env);
     }
 
     const tokenMatch = url.pathname.match(/^\/c\/([a-f0-9]+)$/);

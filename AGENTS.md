@@ -42,6 +42,7 @@ Deploy is automated on push to `main` — see [docs/deploy.md](docs/deploy.md) f
 - `GET /health` — liveness
 - `GET/POST /c/:token` — check-in page and submission
 - `GET /api/responses?from=&to=` — bearer-token JSON export
+- `GET /report` — HTML health strip (answer rate + extract freshness); Basic or bearer auth with `EXPORT_BEARER_TOKEN`
 - Cron (15 min) — scheduler, Pushover notification, expiry sweep, weekly mood summary (Sunday 20:00 Europe/London), G1 answer-rate drift alert, analytics extract to R2 at 03:00 and 15:00 UTC
 - Analytics consumer hookup — [docs/analytics-consumer.md](docs/analytics-consumer.md)
 
