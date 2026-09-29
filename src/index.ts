@@ -1,3 +1,4 @@
+import { runAnswerRateAlert } from "./answer-rate-alert";
 import { renderCheckinPage, renderRecordedPage } from "./checkin-page";
 import { runAnalyticsExtract } from "./analytics-extract";
 import {
@@ -124,7 +125,16 @@ export default {
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
     const now = new Date();
     log("info", "scheduler_run", {});
-    await runScheduler(env, buildNotifier(env), now);
+    const notifier = buildNotifier(env);
+    await runScheduler(env, notifier, now);
+
+    try {
+      await runAnswerRateAlert(env, notifier, now);
+    } catch (error) {
+      log("error", "answer_rate_alert_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
 
     try {
       await runAnalyticsExtract(env, now);
