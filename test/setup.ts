@@ -30,11 +30,7 @@ beforeAll(async () => {
   await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS weekly_summary (
       id TEXT PRIMARY KEY,
-      created_at TEXT NOT NULL,
-      claimed_at TEXT,
-      notification_id TEXT,
-      sent_at TEXT,
-      message TEXT
+      sent_at TEXT NOT NULL
     )`,
   ).run();
   await env.DB.prepare(

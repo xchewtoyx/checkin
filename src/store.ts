@@ -297,127 +297,20 @@ export async function listResponsesForSentPromptsBetween(
   return result.results ?? [];
 }
 
-export interface WeeklySummaryRow {
-  id: string;
-  created_at: string;
-  claimed_at: string | null;
-  sent_at: string | null;
-  notification_id: string | null;
-  message: string | null;
-}
-
-export async function getWeeklySummary(
-  db: D1Database,
-  id: string,
-): Promise<WeeklySummaryRow | null> {
-  return db
-    .prepare(
-      "SELECT id, created_at, claimed_at, sent_at, notification_id, message FROM weekly_summary WHERE id = ?",
-    )
-    .bind(id)
-    .first<WeeklySummaryRow>();
-}
-
-export type WeeklySummaryClaim = "send" | "reconcile" | "skip";
-
-/**
- * Lease the week for sending in one atomic statement: a fresh insert wins,
- * and an existing row only yields when its claim is stale and no push was
- * ever accepted. A row that already recorded a Pushover acceptance returns
- * "reconcile" so the tick finishes the record instead of resending; a sent
- * or live-claimed row returns "skip".
- */
-export async function claimWeeklySummary(
-  db: D1Database,
-  id: string,
-  nowIso: string,
-  staleBeforeIso: string,
-): Promise<WeeklySummaryClaim> {
-  const result = await db
-    .prepare(
-      `INSERT INTO weekly_summary (id, created_at, claimed_at)
-       VALUES (?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET claimed_at = excluded.claimed_at
-       WHERE weekly_summary.sent_at IS NULL
-         AND weekly_summary.notification_id IS NULL
-         AND (weekly_summary.claimed_at IS NULL OR weekly_summary.claimed_at < ?)`,
-    )
-    .bind(id, nowIso, nowIso, staleBeforeIso)
-    .run();
-  if ((result.meta.changes ?? 0) > 0) {
-    return "send";
-  }
-
-  const existing = await getWeeklySummary(db, id);
-  if (existing && existing.sent_at === null && existing.notification_id !== null) {
-    return "reconcile";
-  }
-  return "skip";
-}
-
-export async function storeWeeklySummaryMessage(
-  db: D1Database,
-  id: string,
-  message: string,
-): Promise<void> {
-  await db
-    .prepare("UPDATE weekly_summary SET message = ? WHERE id = ?")
-    .bind(message, id)
-    .run();
-}
-
-export async function recordWeeklySummaryNotification(
-  db: D1Database,
-  id: string,
-  notificationId: string,
-): Promise<void> {
-  await db
-    .prepare("UPDATE weekly_summary SET notification_id = ? WHERE id = ?")
-    .bind(notificationId, id)
-    .run();
-}
-
-export async function completeWeeklySummary(
+export async function insertWeeklySummary(
   db: D1Database,
   id: string,
   sentAt: string,
-): Promise<void> {
-  await db
-    .prepare("UPDATE weekly_summary SET sent_at = ? WHERE id = ?")
-    .bind(sentAt, id)
-    .run();
-}
-
-export async function releaseWeeklySummary(db: D1Database, id: string): Promise<void> {
-  await db
-    .prepare("DELETE FROM weekly_summary WHERE id = ? AND sent_at IS NULL")
-    .bind(id)
-    .run();
-}
-
-/**
- * True while a sent prompt in the range can still be answered: a response
- * (or a re-answer overwriting one) is accepted until expires_at. A summary
- * taken before every prompt closes would be superseded by later answers.
- */
-export async function hasOpenSentPromptsBetween(
-  db: D1Database,
-  fromIso: string,
-  toIsoExclusive: string,
-  nowIso: string,
 ): Promise<boolean> {
-  const row = await db
-    .prepare(
-      `SELECT id FROM checkin_prompt
-       WHERE scheduled_for >= ? AND scheduled_for < ?
-         AND sent_at IS NOT NULL
-         AND expires_at IS NOT NULL
-         AND expires_at > ?
-       LIMIT 1`,
-    )
-    .bind(fromIso, toIsoExclusive, nowIso)
-    .first<{ id: string }>();
-  return row !== null;
+  const result = await db
+    .prepare("INSERT OR IGNORE INTO weekly_summary (id, sent_at) VALUES (?, ?)")
+    .bind(id, sentAt)
+    .run();
+  return (result.meta.changes ?? 0) > 0;
+}
+
+export async function deleteWeeklySummary(db: D1Database, id: string): Promise<void> {
+  await db.prepare("DELETE FROM weekly_summary WHERE id = ?").bind(id).run();
 }
 
 export interface PromptStatusRow {

@@ -125,8 +125,8 @@ export default {
 
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
     const now = new Date();
-    const notifier = buildNotifier(env);
     log("info", "scheduler_run", {});
+    const notifier = buildNotifier(env);
     await runScheduler(env, notifier, now);
 
     try {
