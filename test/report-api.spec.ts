@@ -3,7 +3,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { buildExportSlot, buildManifestObjectKey } from "../src/analytics-extract";
 import { REPORT_AUTH_CHALLENGE } from "../src/export";
 import { getLondonParts } from "../src/london-time";
-import { latestDueSlot } from "../src/health-strip";
+import {
+  FRESHNESS_LOOKBACK_DAYS,
+  latestDueSlot,
+  recentExportSlots,
+} from "../src/health-strip";
 
 const exportToken = "test-export-token";
 
@@ -70,6 +74,22 @@ async function putDueManifest(body: Record<string, unknown>): Promise<string> {
   const key = buildManifestObjectKey(slot);
   await bucket.put(key, JSON.stringify(body));
   return key;
+}
+
+async function putAllRecentManifests(): Promise<void> {
+  const bucket = await extractBucket();
+  const now = new Date();
+  for (const slot of recentExportSlots(now, FRESHNESS_LOOKBACK_DAYS)) {
+    await bucket.put(
+      buildManifestObjectKey(slot),
+      JSON.stringify({
+        extraction_timestamp: new Date(
+          slot.scheduledAt.getTime() + 3 * 60_000,
+        ).toISOString(),
+        source_count_mismatch: false,
+      }),
+    );
+  }
 }
 
 describe("GET /report", () => {
@@ -156,10 +176,7 @@ describe("GET /report", () => {
       token: "live-open",
     });
 
-    await putDueManifest({
-      extraction_timestamp: new Date().toISOString(),
-      source_count_mismatch: false,
-    });
+    await putAllRecentManifests();
 
     const response = await SELF.fetch("http://example.com/report", {
       headers: bearerHeaders(),

@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   DeliveredPrompt,
   ExtractFacts,
+  FRESHNESS_LOOKBACK_DAYS,
   HealthFacts,
+  ManifestHead,
   assessHealth,
   deliveredPrompt,
+  dueExportSlots,
   latestDueSlot,
   manifestHead,
   parsePromptDateKey,
@@ -38,14 +41,28 @@ function closedWindowPrompts(
   return prompts;
 }
 
-function currentExtract(): ExtractFacts {
+function dueSlotManifests(observedAt: string): ManifestHead[] {
+  return dueExportSlots(new Date(observedAt), FRESHNESS_LOOKBACK_DAYS).map(
+    (slot) =>
+      manifestHead(
+        slot.extractionDate,
+        slot.objectTimestamp,
+        new Date(slot.scheduledAt.getTime() + 5 * 60_000).toISOString(),
+        false,
+      ),
+  );
+}
+
+function currentExtract(observedAt = OBSERVED): ExtractFacts {
   return {
     kind: "bucket",
-    manifests: [
-      manifestHead("2026-09-28", "030000", "2026-09-28T03:05:00.000Z", false),
-    ],
+    manifests: dueSlotManifests(observedAt),
     unreadableKeys: [],
   };
+}
+
+function manifestKey(extractionDate: string, objectTimestamp: string): string {
+  return `raw/cloudflare/checkins/manifests/extraction_date=${extractionDate}/${objectTimestamp}.json`;
 }
 
 describe("parsePromptDateKey", () => {
@@ -215,13 +232,7 @@ describe("assessHealth extract freshness", () => {
     const strip = assessHealth(
       facts({
         observedAt: "2026-09-28T15:10:00.000Z",
-        extract: {
-          kind: "bucket",
-          manifests: [
-            manifestHead("2026-09-28", "030000", "2026-09-28T03:05:00.000Z", false),
-          ],
-          unreadableKeys: [],
-        },
+        extract: currentExtract("2026-09-28T15:10:00.000Z"),
       }),
     );
     expect(strip.extract).toMatchObject({
@@ -237,9 +248,13 @@ describe("assessHealth extract freshness", () => {
         observedAt: "2026-09-28T15:20:00.000Z",
         extract: {
           kind: "bucket",
-          manifests: [
-            manifestHead("2026-09-28", "030000", "2026-09-28T03:05:00.000Z", false),
-          ],
+          manifests: dueSlotManifests("2026-09-28T15:20:00.000Z").filter(
+            (head) =>
+              !(
+                head.slot.extractionDate === "2026-09-28" &&
+                head.slot.objectTimestamp === "150000"
+              ),
+          ),
           unreadableKeys: [],
         },
       }),
@@ -247,11 +262,84 @@ describe("assessHealth extract freshness", () => {
     expect(strip.extract).toMatchObject({
       kind: "landed",
       freshness: {
-        kind: "missed-slot",
-        expected: { extractionDate: "2026-09-28", objectTimestamp: "150000" },
+        kind: "stale",
+        causes: [
+          {
+            kind: "missed-slot",
+            slot: { extractionDate: "2026-09-28", objectTimestamp: "150000" },
+          },
+        ],
       },
     });
     expect(renderHealthStrip(strip)).toContain("missed 2026-09-28 15:00 UTC");
+  });
+
+  it("flags a missed morning slot even after the afternoon export landed", () => {
+    const strip = assessHealth(
+      facts({
+        observedAt: "2026-09-28T16:00:00.000Z",
+        extract: {
+          kind: "bucket",
+          manifests: dueSlotManifests("2026-09-28T16:00:00.000Z").filter(
+            (head) =>
+              !(
+                head.slot.extractionDate === "2026-09-28" &&
+                head.slot.objectTimestamp === "030000"
+              ),
+          ),
+          unreadableKeys: [],
+        },
+      }),
+    );
+    expect(strip.extract).toMatchObject({
+      kind: "landed",
+      freshness: {
+        kind: "stale",
+        causes: [
+          {
+            kind: "missed-slot",
+            slot: { extractionDate: "2026-09-28", objectTimestamp: "030000" },
+          },
+        ],
+      },
+    });
+    expect(strip.glance).toBe("attention");
+    expect(renderHealthStrip(strip)).toContain("missed 2026-09-28 03:00 UTC");
+  });
+
+  it("surfaces an unreadable due manifest instead of calling it missed", () => {
+    const strip = assessHealth(
+      facts({
+        observedAt: "2026-09-28T15:20:00.000Z",
+        extract: {
+          kind: "bucket",
+          manifests: dueSlotManifests("2026-09-28T15:20:00.000Z").filter(
+            (head) =>
+              !(
+                head.slot.extractionDate === "2026-09-28" &&
+                head.slot.objectTimestamp === "150000"
+              ),
+          ),
+          unreadableKeys: [manifestKey("2026-09-28", "150000")],
+        },
+      }),
+    );
+    expect(strip.extract).toMatchObject({
+      kind: "landed",
+      freshness: {
+        kind: "stale",
+        causes: [
+          {
+            kind: "unreadable-manifest",
+            slot: { extractionDate: "2026-09-28", objectTimestamp: "150000" },
+            key: manifestKey("2026-09-28", "150000"),
+          },
+        ],
+      },
+    });
+    const html = renderHealthStrip(strip);
+    expect(html).toContain("unreadable manifest 2026-09-28 15:00 UTC");
+    expect(html).not.toContain("missed 2026-09-28 15:00 UTC");
   });
 
   it("treats an extract exactly 24h old as current when the due slot is present", () => {
@@ -260,9 +348,14 @@ describe("assessHealth extract freshness", () => {
         observedAt: "2026-09-28T15:20:00.000Z",
         extract: {
           kind: "bucket",
-          manifests: [
-            manifestHead("2026-09-28", "150000", "2026-09-27T15:20:00.000Z", false),
-          ],
+          manifests: dueSlotManifests("2026-09-28T15:20:00.000Z").map((head) =>
+            manifestHead(
+              head.slot.extractionDate,
+              head.slot.objectTimestamp,
+              "2026-09-27T15:20:00.000Z",
+              false,
+            ),
+          ),
           unreadableKeys: [],
         },
       }),
@@ -279,16 +372,21 @@ describe("assessHealth extract freshness", () => {
         observedAt: "2026-09-28T15:20:00.000Z",
         extract: {
           kind: "bucket",
-          manifests: [
-            manifestHead("2026-09-28", "150000", "2026-09-27T15:19:59.000Z", false),
-          ],
+          manifests: dueSlotManifests("2026-09-28T15:20:00.000Z").map((head) =>
+            manifestHead(
+              head.slot.extractionDate,
+              head.slot.objectTimestamp,
+              "2026-09-27T15:19:59.000Z",
+              false,
+            ),
+          ),
           unreadableKeys: [],
         },
       }),
     );
     expect(strip.extract).toMatchObject({
       kind: "landed",
-      freshness: { kind: "older-than-24h" },
+      freshness: { kind: "stale", causes: [{ kind: "older-than-24h" }] },
     });
     expect(renderHealthStrip(strip)).toContain("older than 24h");
   });
@@ -306,13 +404,23 @@ describe("assessHealth extract freshness", () => {
         },
       }),
     );
-    expect(strip.extract).toMatchObject({
-      kind: "landed",
-      freshness: {
-        kind: "missed-slot-and-older-than-24h",
-        expected: { extractionDate: "2026-09-28", objectTimestamp: "150000" },
-      },
+    if (strip.extract.kind !== "landed") {
+      throw new Error("expected landed extract");
+    }
+    expect(strip.extract.freshness.kind).toBe("stale");
+    if (strip.extract.freshness.kind !== "stale") {
+      throw new Error("expected stale freshness");
+    }
+    expect(strip.extract.freshness.causes).toContainEqual({
+      kind: "missed-slot",
+      slot: { extractionDate: "2026-09-28", objectTimestamp: "150000" },
     });
+    expect(strip.extract.freshness.causes).toContainEqual({
+      kind: "older-than-24h",
+    });
+    const html = renderHealthStrip(strip);
+    expect(html).toContain("older than 24h");
+    expect(html).toContain("missed 2026-09-22 03:00 UTC");
   });
 
   it("surfaces a source-count mismatch on the latest head", () => {

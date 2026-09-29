@@ -63,11 +63,18 @@ export type AnswerReading =
       readonly band: RateBand;
     };
 
+export type FreshnessCause =
+  | { readonly kind: "missed-slot"; readonly slot: SlotId }
+  | {
+      readonly kind: "unreadable-manifest";
+      readonly slot: SlotId | null;
+      readonly key: string;
+    }
+  | { readonly kind: "older-than-24h" };
+
 export type Freshness =
   | { readonly kind: "current" }
-  | { readonly kind: "missed-slot"; readonly expected: SlotId }
-  | { readonly kind: "older-than-24h" }
-  | { readonly kind: "missed-slot-and-older-than-24h"; readonly expected: SlotId };
+  | { readonly kind: "stale"; readonly causes: readonly FreshnessCause[] };
 
 export type ExtractReading =
   | { readonly kind: "absent"; readonly reason: "no-bucket" | "no-manifest" }
@@ -165,16 +172,35 @@ export function recentExportSlots(now: Date, lookbackDays: number): ExportSlot[]
 }
 
 export function latestDueSlot(now: Date): SlotId | null {
-  for (const slot of recentExportSlots(now, 2)) {
-    const dueAt = slot.scheduledAt.getTime() + EXPORT_SLOT_WINDOW_MINUTES * 60_000;
-    if (dueAt <= now.getTime()) {
-      return {
-        extractionDate: slot.extractionDate,
-        objectTimestamp: slot.objectTimestamp,
+  const due = dueExportSlots(now, 2);
+  const latest = due[due.length - 1];
+  return latest === undefined
+    ? null
+    : {
+        extractionDate: latest.extractionDate,
+        objectTimestamp: latest.objectTimestamp,
       };
-    }
+}
+
+export function dueExportSlots(now: Date, lookbackDays: number): ExportSlot[] {
+  return recentExportSlots(now, lookbackDays)
+    .filter(
+      (slot) =>
+        slot.scheduledAt.getTime() + EXPORT_SLOT_WINDOW_MINUTES * 60_000 <=
+        now.getTime(),
+    )
+    .reverse();
+}
+
+const MANIFEST_KEY_RE =
+  /extraction_date=(\d{4}-\d{2}-\d{2})\/(\d{6})\.json$/;
+
+export function slotFromManifestKey(key: string): SlotId | null {
+  const match = MANIFEST_KEY_RE.exec(key);
+  if (!match) {
+    return null;
   }
-  return null;
+  return { extractionDate: match[1], objectTimestamp: match[2] };
 }
 
 export function slotKey(slot: SlotId): string {
@@ -256,25 +282,57 @@ function latestManifest(manifests: readonly ManifestHead[]): ManifestHead | null
 
 function freshnessFor(
   latest: ManifestHead,
-  manifests: readonly ManifestHead[],
-  expected: SlotId | null,
+  extract: {
+    readonly manifests: readonly ManifestHead[];
+    readonly unreadableKeys: readonly string[];
+  },
   observedAt: string,
 ): Freshness {
-  const expectedPresent =
-    expected === null || manifests.some((head) => sameSlot(head.slot, expected));
-  const missed = expected !== null && !expectedPresent;
+  const causes: FreshnessCause[] = [];
+  const unreadable = extract.unreadableKeys.map((key) => ({
+    key,
+    slot: slotFromManifestKey(key),
+    matched: false,
+  }));
+  const due = dueExportSlots(new Date(observedAt), FRESHNESS_LOOKBACK_DAYS);
+  for (const slot of due) {
+    const slotId: SlotId = {
+      extractionDate: slot.extractionDate,
+      objectTimestamp: slot.objectTimestamp,
+    };
+    if (extract.manifests.some((head) => sameSlot(head.slot, slotId))) {
+      continue;
+    }
+    const bad = unreadable.find(
+      (entry) => entry.slot !== null && sameSlot(entry.slot, slotId),
+    );
+    if (bad) {
+      bad.matched = true;
+      causes.push({
+        kind: "unreadable-manifest",
+        slot: bad.slot,
+        key: bad.key,
+      });
+    } else {
+      causes.push({ kind: "missed-slot", slot: slotId });
+    }
+  }
+  for (const entry of unreadable) {
+    if (!entry.matched) {
+      causes.push({
+        kind: "unreadable-manifest",
+        slot: entry.slot,
+        key: entry.key,
+      });
+    }
+  }
   const age = Date.parse(observedAt) - Date.parse(latest.extractionTimestamp);
-  const old = age > FRESH_WITHIN_MS;
-  if (missed && old && expected) {
-    return { kind: "missed-slot-and-older-than-24h", expected };
+  if (age > FRESH_WITHIN_MS) {
+    causes.push({ kind: "older-than-24h" });
   }
-  if (missed && expected) {
-    return { kind: "missed-slot", expected };
-  }
-  if (old) {
-    return { kind: "older-than-24h" };
-  }
-  return { kind: "current" };
+  return causes.length === 0
+    ? { kind: "current" }
+    : { kind: "stale", causes };
 }
 
 function extractReading(extract: ExtractFacts, observedAt: string): ExtractReading {
@@ -289,12 +347,11 @@ function extractReading(extract: ExtractFacts, observedAt: string): ExtractReadi
     }
     return { kind: "absent", reason: "no-manifest" };
   }
-  const expected = latestDueSlot(new Date(observedAt));
   return {
     kind: "landed",
     refreshedAt: latest.extractionTimestamp,
     slot: latest.slot,
-    freshness: freshnessFor(latest, extract.manifests, expected, observedAt),
+    freshness: freshnessFor(latest, extract, observedAt),
     integrity: latest.sourceCountMismatch ? "mismatch" : "match",
   };
 }
@@ -347,23 +404,44 @@ function bandLabel(band: RateBand): string {
   return "Friction failure";
 }
 
-function missedSlotLabel(expected: SlotId): string {
-  const hour = expected.objectTimestamp.slice(0, 2);
-  const minute = expected.objectTimestamp.slice(2, 4);
-  return `missed ${expected.extractionDate} ${hour}:${minute} UTC`;
+function slotTimeLabel(slot: SlotId): string {
+  const hour = slot.objectTimestamp.slice(0, 2);
+  const minute = slot.objectTimestamp.slice(2, 4);
+  return `${slot.extractionDate} ${hour}:${minute} UTC`;
 }
 
 function freshnessCauses(freshness: Freshness): string[] {
   if (freshness.kind === "current") {
     return [];
   }
-  if (freshness.kind === "missed-slot") {
-    return [missedSlotLabel(freshness.expected)];
+  const labels: string[] = [];
+  let missedCount = 0;
+  let firstMissedIndex = -1;
+  for (const cause of freshness.causes) {
+    if (cause.kind === "missed-slot") {
+      missedCount += 1;
+      if (missedCount === 1) {
+        firstMissedIndex = labels.length;
+        labels.push(`missed ${slotTimeLabel(cause.slot)}`);
+      }
+      continue;
+    }
+    if (cause.kind === "unreadable-manifest") {
+      labels.push(
+        cause.slot === null
+          ? `unreadable manifest ${cause.key}`
+          : `unreadable manifest ${slotTimeLabel(cause.slot)}`,
+      );
+      continue;
+    }
+    labels.push("older than 24h");
   }
-  if (freshness.kind === "older-than-24h") {
-    return ["older than 24h"];
+  if (missedCount > 1) {
+    labels[firstMissedIndex] = `${labels[firstMissedIndex]} +${
+      missedCount - 1
+    } more`;
   }
-  return [missedSlotLabel(freshness.expected), "older than 24h"];
+  return labels;
 }
 
 function answerCell(answer: AnswerReading): string {

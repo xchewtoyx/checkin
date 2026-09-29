@@ -1,7 +1,4 @@
-import {
-  ExportSlot,
-  buildManifestObjectKey,
-} from "./analytics-extract";
+import { buildManifestObjectKey } from "./analytics-extract";
 import {
   DeliveredPrompt,
   DeliveredStatus,
@@ -11,6 +8,7 @@ import {
   ManifestHead,
   parsePromptDateKey,
   recentExportSlots,
+  slotFromManifestKey,
 } from "./health-strip";
 import { log } from "./logger";
 
@@ -83,7 +81,10 @@ function mismatchFromUnknown(raw: unknown): boolean {
   return false;
 }
 
-function parseManifestHead(slot: ExportSlot, body: string): ManifestHead | null {
+function parseManifestHead(
+  slot: { readonly extractionDate: string; readonly objectTimestamp: string },
+  body: string,
+): ManifestHead | null {
   let raw: unknown;
   try {
     raw = JSON.parse(body);
@@ -111,6 +112,27 @@ async function readObjectText(
   object: { arrayBuffer(): Promise<ArrayBuffer> },
 ): Promise<string> {
   return new TextDecoder().decode(await object.arrayBuffer());
+}
+
+const MANIFEST_PREFIX = "raw/cloudflare/checkins/manifests/";
+
+async function lastManifestKey(bucket: R2Bucket): Promise<string | null> {
+  let cursor: string | undefined;
+  let last: string | null = null;
+  do {
+    const page = await bucket.list({
+      prefix: MANIFEST_PREFIX,
+      cursor,
+      limit: 1000,
+    });
+    for (const object of page.objects) {
+      if (last === null || object.key > last) {
+        last = object.key;
+      }
+    }
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor !== undefined);
+  return last;
 }
 
 async function loadExtract(
@@ -142,6 +164,23 @@ async function loadExtract(
       }
       manifests.push(head);
     }
+    if (manifests.length === 0 && unreadableKeys.length === 0) {
+      const key = await lastManifestKey(bucket);
+      if (key !== null) {
+        const slot = slotFromManifestKey(key);
+        const object = await bucket.get(key);
+        const head =
+          slot === null || object === null
+            ? null
+            : parseManifestHead(slot, await readObjectText(object));
+        if (head === null) {
+          log("error", "health_manifest_unreadable", { manifest_key: key });
+          unreadableKeys.push(key);
+        } else {
+          manifests.push(head);
+        }
+      }
+    }
   } catch (error) {
     log("error", "health_extract_read_failed", {
       error: error instanceof Error ? error.message : "unknown",
@@ -150,9 +189,7 @@ async function loadExtract(
       kind: "bucket",
       manifests,
       unreadableKeys:
-        unreadableKeys.length > 0
-          ? unreadableKeys
-          : ["raw/cloudflare/checkins/manifests/"],
+        unreadableKeys.length > 0 ? unreadableKeys : [MANIFEST_PREFIX],
     };
   }
   return { kind: "bucket", manifests, unreadableKeys };
