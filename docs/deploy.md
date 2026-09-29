@@ -95,6 +95,7 @@ Re-run the deploy workflow (or push to `main`) if the first deploy ran before `B
 4. Sync Worker secrets from GitHub secrets
 5. `wrangler deploy --env production` with `BASE_URL` var
 6. Smoke test `GET $BASE_URL/health`
+7. Smoke test `GET $BASE_URL/report` with `EXPORT_BEARER_TOKEN` (Bearer); records window, rate/band or Absent, and extract freshness without logging the token or HTML body
 
 ## Manual smoke test (after first deploy)
 

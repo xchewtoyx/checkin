@@ -79,3 +79,8 @@ jobs:
             exit 1
           fi
           curl --fail --retry 5 --retry-delay 3 "${{ vars.BASE_URL }}/health"
+      - name: Smoke test /report
+        env:
+          BASE_URL: ${{ vars.BASE_URL }}
+          EXPORT_BEARER_TOKEN: ${{ secrets.EXPORT_BEARER_TOKEN }}
+        run: bash scripts/smoke-report.sh
