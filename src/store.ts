@@ -260,6 +260,59 @@ export async function countAllResponsesForExport(db: D1Database): Promise<number
   return row?.row_count ?? 0;
 }
 
+export async function listSentPromptsBetween(
+  db: D1Database,
+  fromIso: string,
+  toIsoExclusive: string,
+): Promise<PromptRow[]> {
+  const result = await db
+    .prepare(
+      `SELECT id, scheduled_for, sent_at, expires_at, response_token, notification_id, status, created_at
+       FROM checkin_prompt
+       WHERE scheduled_for >= ? AND scheduled_for < ? AND sent_at IS NOT NULL
+       ORDER BY scheduled_for ASC`,
+    )
+    .bind(fromIso, toIsoExclusive)
+    .all<PromptRow>();
+  return result.results ?? [];
+}
+
+export async function listResponsesForSentPromptsBetween(
+  db: D1Database,
+  fromIso: string,
+  toIsoExclusive: string,
+): Promise<ResponseRow[]> {
+  const result = await db
+    .prepare(
+      `SELECT r.id, r.prompt_id, r.feeling, r.intensity, r.note, r.confidence, r.vocab_era, r.observed_at, r.submitted_at
+       FROM checkin_response r
+       WHERE r.prompt_id IN (
+         SELECT id FROM checkin_prompt
+         WHERE scheduled_for >= ? AND scheduled_for < ? AND sent_at IS NOT NULL
+       )
+       ORDER BY r.observed_at ASC`,
+    )
+    .bind(fromIso, toIsoExclusive)
+    .all<ResponseRow>();
+  return result.results ?? [];
+}
+
+export async function insertWeeklySummary(
+  db: D1Database,
+  id: string,
+  sentAt: string,
+): Promise<boolean> {
+  const result = await db
+    .prepare("INSERT OR IGNORE INTO weekly_summary (id, sent_at) VALUES (?, ?)")
+    .bind(id, sentAt)
+    .run();
+  return (result.meta.changes ?? 0) > 0;
+}
+
+export async function deleteWeeklySummary(db: D1Database, id: string): Promise<void> {
+  await db.prepare("DELETE FROM weekly_summary WHERE id = ?").bind(id).run();
+}
+
 export interface PromptStatusRow {
   id: string;
   status: PromptStatus;

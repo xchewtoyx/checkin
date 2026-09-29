@@ -28,6 +28,12 @@ beforeAll(async () => {
     )`,
   ).run();
   await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS weekly_summary (
+      id TEXT PRIMARY KEY,
+      sent_at TEXT NOT NULL
+    )`,
+  ).run();
+  await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS checkin_alert_state (
       id TEXT PRIMARY KEY,
       notified_status TEXT CHECK (notified_status IS NULL OR notified_status IN ('ok', 'breach')),

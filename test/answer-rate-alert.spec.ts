@@ -35,6 +35,10 @@ class RecordingNotifier implements Notifier {
     return { id: "noop" };
   }
 
+  async sendWeeklySummary(_message: string): Promise<NotificationResult> {
+    return { id: "noop-weekly" };
+  }
+
   async sendAlert(title: string, message: string): Promise<NotificationResult> {
     if (this.failNext) {
       this.failNext = false;

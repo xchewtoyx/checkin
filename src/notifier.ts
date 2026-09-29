@@ -5,6 +5,7 @@ export interface NotificationResult {
 export interface Notifier {
   readonly deliversNotifications: boolean;
   sendCheckin(url: string): Promise<NotificationResult>;
+  sendWeeklySummary(message: string): Promise<NotificationResult>;
   sendAlert(title: string, message: string): Promise<NotificationResult>;
 }
 
@@ -22,6 +23,13 @@ export class PushoverNotifier implements Notifier {
       title: "checkin",
       url,
       url_title: "Check in",
+    });
+  }
+
+  async sendWeeklySummary(message: string): Promise<NotificationResult> {
+    return this.post({
+      message,
+      title: "Weekly check-in",
     });
   }
 
@@ -60,6 +68,10 @@ export class NoopNotifier implements Notifier {
 
   async sendCheckin(_url: string): Promise<NotificationResult> {
     return { id: "noop" };
+  }
+
+  async sendWeeklySummary(_message: string): Promise<NotificationResult> {
+    return { id: "noop-weekly" };
   }
 
   async sendAlert(_title: string, _message: string): Promise<NotificationResult> {
