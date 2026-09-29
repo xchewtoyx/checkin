@@ -40,14 +40,19 @@ if token and token in html:
     print("token_in_html=yes", file=sys.stderr)
     sys.exit("EXPORT_BEARER_TOKEN leaked into HTML")
 
+strip = re.search(r"<section class=\"strip\"[\s\S]*?</section>", html)
+if not strip:
+    sys.exit("health strip section missing")
+markup = strip.group(0)
+
 def attr(name: str) -> str | None:
-    match = re.search(rf'data-{re.escape(name)}="([^"]*)"', html)
+    match = re.search(rf'data-{re.escape(name)}="([^"]*)"', markup)
     return match.group(1) if match else None
 
 def figure_for(kind: str) -> str | None:
     match = re.search(
         rf'data-{re.escape(kind)}="[^"]*"[\s\S]*?class="figure">([^<]*)',
-        html,
+        markup,
     )
     return match.group(1) if match else None
 
@@ -96,6 +101,13 @@ elif answer == "measured":
         answer_figure or "",
     ):
         errors.append("measured rate must show answered/sent, percent, and band")
+    expected_label = {
+        "healthy": "Healthy",
+        "friction": "Friction review",
+        "failure": "Friction failure",
+    }[band]
+    if expected_label not in (answer_figure or ""):
+        errors.append("rate band and label disagree")
 else:
     errors.append("answer cell missing")
 
