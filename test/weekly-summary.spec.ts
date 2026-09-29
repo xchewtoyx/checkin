@@ -1,7 +1,15 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import { NotificationResult, Notifier } from "../src/notifier";
-import { insertPrompt, PromptRow, upsertResponse } from "../src/store";
+import {
+  claimWeeklySummary,
+  completeWeeklySummary,
+  getWeeklySummary,
+  insertPrompt,
+  PromptRow,
+  recordWeeklySummaryNotification,
+  upsertResponse,
+} from "../src/store";
 import {
   formatWeeklySummaryMessage,
   isoWeekIdFromMonday,
@@ -37,22 +45,27 @@ class RecordingNotifier implements Notifier {
 const SUNDAY_SEND = new Date("2026-06-07T19:00:00.000Z");
 /** Monday 2026-06-08 07:59 BST. */
 const MONDAY_RETRY = new Date("2026-06-08T06:59:00.000Z");
-/** Monday 2026-06-08 08:00 BST — retry window closed. */
-const MONDAY_TOO_LATE = new Date("2026-06-08T07:00:00.000Z");
+/** Monday 2026-06-08 11:00 BST — after a Sunday prompt sent ~18:30 closes. */
+const MONDAY_CLOSED = new Date("2026-06-08T10:00:00.000Z");
+/** Monday 2026-06-08 12:00 BST — retry window closed. */
+const MONDAY_TOO_LATE = new Date("2026-06-08T11:00:00.000Z");
 /** Sunday 2026-06-07 19:59 BST — still inside prompt day. */
 const SUNDAY_TOO_EARLY = new Date("2026-06-07T18:59:00.000Z");
 
 async function seedPrompt(
   id: string,
   scheduledFor: string,
-  options: { sent?: boolean; intensity?: number } = {},
+  options: { sent?: boolean; intensity?: number; expiresAt?: string } = {},
 ): Promise<void> {
   const sent = options.sent !== false;
   const row: PromptRow = {
     id,
     scheduled_for: scheduledFor,
     sent_at: sent ? scheduledFor : null,
-    expires_at: sent ? "2026-06-08T12:00:00.000Z" : null,
+    expires_at: sent
+      ? (options.expiresAt ??
+        new Date(Date.parse(scheduledFor) + 16 * 60 * 60 * 1000).toISOString())
+      : null,
     response_token: id.replace(/[^a-f0-9]/g, "").padEnd(8, "a").slice(0, 8),
     notification_id: sent ? "n1" : null,
     status: sent ? (options.intensity !== undefined ? "answered" : "expired") : "failed",
@@ -125,10 +138,11 @@ describe("weekly summary message", () => {
 });
 
 describe("weekly summary window", () => {
-  it("opens Sunday 20:00 London and stays open until Monday 08:00", () => {
+  it("opens Sunday 20:00 London and stays open until Monday 12:00", () => {
     expect(shouldRunWeeklySummary(SUNDAY_TOO_EARLY)).toBe(false);
     expect(shouldRunWeeklySummary(SUNDAY_SEND)).toBe(true);
     expect(shouldRunWeeklySummary(MONDAY_RETRY)).toBe(true);
+    expect(shouldRunWeeklySummary(new Date("2026-06-08T10:59:00.000Z"))).toBe(true);
     expect(shouldRunWeeklySummary(MONDAY_TOO_LATE)).toBe(false);
     expect(shouldRunWeeklySummary(new Date("2026-06-10T19:00:00.000Z"))).toBe(false);
   });
@@ -253,4 +267,142 @@ describe("runWeeklySummary", () => {
       message: "Too little data to summarise (1/2).",
     });
   });
+
+  it("defers while a sent prompt can still be answered, then sends with final numbers", async () => {
+    await seedPrompt("w23-a", "2026-06-01T09:00:00.000Z", { intensity: 6 });
+    await seedPrompt("w23-b", "2026-06-02T09:00:00.000Z", { intensity: 6 });
+    // A Sunday prompt sent ~18:30 BST stays answerable until ~10:30 BST Monday.
+    await seedPrompt("w23-late", "2026-06-07T17:30:00.000Z", {
+      intensity: 7,
+      expiresAt: "2026-06-08T09:30:00.000Z",
+    });
+
+    const notifier = new RecordingNotifier();
+    expect(await runWeeklySummary(env, notifier, SUNDAY_SEND)).toEqual({
+      skipped: true,
+      reason: "prompts_open",
+    });
+    expect(await runWeeklySummary(env, notifier, MONDAY_RETRY)).toEqual({
+      skipped: true,
+      reason: "prompts_open",
+    });
+    expect(notifier.summaries).toEqual([]);
+
+    const result = await runWeeklySummary(env, notifier, MONDAY_CLOSED);
+    expect(result).toEqual({
+      skipped: false,
+      weekId: "weekly-2026-W23",
+      message: "3/3 answered. Mood 6.3. No prior week to compare.",
+    });
+    expect(notifier.summaries).toEqual(["3/3 answered. Mood 6.3. No prior week to compare."]);
+  });
 });
+
+describe("weekly summary claim", () => {
+  beforeEach(async () => {
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+    await env.DB.prepare("DELETE FROM weekly_summary").run();
+  });
+
+  const NOW = "2026-06-07T19:00:00.000Z";
+  const STALE_BEFORE = "2026-06-07T18:55:00.000Z";
+
+  it("keeps a live claim exclusive: a second tick skips instead of sending", async () => {
+    expect(await claimWeeklySummary(env.DB, "weekly-2026-W23", NOW, STALE_BEFORE)).toBe(
+      "send",
+    );
+    expect(await claimWeeklySummary(env.DB, "weekly-2026-W23", NOW, STALE_BEFORE)).toBe(
+      "skip",
+    );
+  });
+
+  it("takes over a stale claim from a dead tick", async () => {
+    expect(await claimWeeklySummary(env.DB, "weekly-2026-W23", NOW, STALE_BEFORE)).toBe(
+      "send",
+    );
+    const later = "2026-06-07T19:15:00.000Z";
+    const laterStaleBefore = "2026-06-07T19:10:00.000Z";
+    expect(
+      await claimWeeklySummary(env.DB, "weekly-2026-W23", later, laterStaleBefore),
+    ).toBe("send");
+  });
+
+  it("reconciles a delivered push and never claims it for resend", async () => {
+    expect(await claimWeeklySummary(env.DB, "weekly-2026-W23", NOW, STALE_BEFORE)).toBe(
+      "send",
+    );
+    await recordWeeklySummaryNotification(env.DB, "weekly-2026-W23", "req-1");
+
+    const later = "2026-06-07T19:30:00.000Z";
+    expect(
+      await claimWeeklySummary(env.DB, "weekly-2026-W23", later, NOW),
+    ).toBe("reconcile");
+
+    await completeWeeklySummary(env.DB, "weekly-2026-W23", later);
+    expect(
+      await claimWeeklySummary(env.DB, "weekly-2026-W23", later, NOW),
+    ).toBe("skip");
+  });
+
+  it("reconciles a delivered push through runWeeklySummary without resending", async () => {
+    await seedPrompt("w23-a", "2026-06-01T09:00:00.000Z", { intensity: 6 });
+    await seedPrompt("w23-b", "2026-06-02T09:00:00.000Z", { intensity: 6 });
+    await seedPrompt("w23-c", "2026-06-03T09:00:00.000Z", { intensity: 6 });
+    await claimWeeklySummary(env.DB, "weekly-2026-W23", NOW, STALE_BEFORE);
+    await storeWeeklySummaryMessageForTest("weekly-2026-W23");
+    await recordWeeklySummaryNotification(env.DB, "weekly-2026-W23", "req-1");
+
+    const notifier = new RecordingNotifier();
+    const result = await runWeeklySummary(env, notifier, MONDAY_RETRY);
+
+    expect(result).toEqual({ skipped: true, reason: "reconciled" });
+    expect(notifier.summaries).toEqual([]);
+    expect((await getWeeklySummary(env.DB, "weekly-2026-W23"))?.sent_at).not.toBeNull();
+  });
+
+  it("keeps the claim when the completion write fails after a delivered push", async () => {
+    await env.DB.prepare(
+      `CREATE TRIGGER fail_weekly_sent_at BEFORE UPDATE OF sent_at ON weekly_summary
+       BEGIN SELECT RAISE(FAIL, 'sent_at_blocked'); END`,
+    ).run();
+    try {
+      await seedPrompt("w23-a", "2026-06-01T09:00:00.000Z", { intensity: 6 });
+      await seedPrompt("w23-b", "2026-06-02T09:00:00.000Z", { intensity: 6 });
+      await seedPrompt("w23-c", "2026-06-03T09:00:00.000Z", { intensity: 6 });
+
+      const notifier = new RecordingNotifier();
+      await expect(runWeeklySummary(env, notifier, SUNDAY_SEND)).rejects.toThrow(
+        "sent_at_blocked",
+      );
+
+      // The push went out once; the row keeps its notification id so later
+      // ticks reconcile instead of resending.
+      expect(notifier.summaries).toHaveLength(1);
+      const row = await getWeeklySummary(env.DB, "weekly-2026-W23");
+      expect(row?.notification_id).toBe("weekly-1");
+      expect(row?.sent_at).toBeNull();
+
+      await expect(runWeeklySummary(env, notifier, MONDAY_RETRY)).rejects.toThrow(
+        "sent_at_blocked",
+      );
+      expect(notifier.summaries).toHaveLength(1);
+    } finally {
+      await env.DB.prepare("DROP TRIGGER IF EXISTS fail_weekly_sent_at").run();
+    }
+
+    const notifier = new RecordingNotifier();
+    expect(await runWeeklySummary(env, notifier, MONDAY_RETRY)).toEqual({
+      skipped: true,
+      reason: "reconciled",
+    });
+    expect(notifier.summaries).toEqual([]);
+    expect((await getWeeklySummary(env.DB, "weekly-2026-W23"))?.sent_at).not.toBeNull();
+  });
+});
+
+async function storeWeeklySummaryMessageForTest(id: string): Promise<void> {
+  await env.DB.prepare("UPDATE weekly_summary SET message = ? WHERE id = ?")
+    .bind("3/3 answered. Mood 6.0. No prior week to compare.", id)
+    .run();
+}

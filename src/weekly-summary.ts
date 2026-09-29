@@ -4,9 +4,12 @@ import { Notifier } from "./notifier";
 import {
   claimWeeklySummary,
   completeWeeklySummary,
+  hasOpenSentPromptsBetween,
   listResponsesForSentPromptsBetween,
   listSentPromptsBetween,
+  recordWeeklySummaryNotification,
   releaseWeeklySummary,
+  storeWeeklySummaryMessage,
 } from "./store";
 
 /** Fewest answers that may be turned into a mean. Below this the push says so. */
@@ -15,8 +18,15 @@ export const MIN_ANSWERS_TO_SUMMARISE = 3;
 /** Sunday 20:00 Europe/London — after the prompt day ends (20:00). */
 export const WEEKLY_SUMMARY_START_MINUTES = 20 * 60;
 
-/** Monday 08:00 Europe/London — before the next prompt day, retry window closes. */
-export const WEEKLY_SUMMARY_RETRY_UNTIL_MINUTES = 8 * 60;
+/**
+ * Monday 12:00 Europe/London — the last Sunday prompt (sent by 19:00, plus
+ * the 16h answer window) stays answerable until ~11:00; leave it room to
+ * close, then stop retrying.
+ */
+export const WEEKLY_SUMMARY_RETRY_UNTIL_MINUTES = 12 * 60;
+
+/** A dead tick's claim is taken over once it is this old. */
+export const WEEKLY_SUMMARY_CLAIM_LEASE_MS = 5 * 60 * 1000;
 
 export interface WeeklySummaryEnv {
   DB: D1Database;
@@ -82,8 +92,9 @@ export function isoWeekIdFromMonday(mondayDateKey: string): string {
 }
 
 /**
- * True on Sunday from 20:00 London, and on Monday before 08:00 so a missed
- * 15-minute tick can still send once. Idempotency is the week row, not the window.
+ * True on Sunday from 20:00 London, and on Monday before 12:00 so a missed
+ * 15-minute tick — or a week whose prompts were still answerable — can
+ * still send once. Idempotency is the week row, not the window.
  */
 export function shouldRunWeeklySummary(now: Date): boolean {
   const weekday = londonWeekdayMonday0(now);
@@ -214,18 +225,50 @@ export async function runWeeklySummary(
 
   const week = summaryWeekBounds(now);
   const nowIso = now.toISOString();
-  const claimed = await claimWeeklySummary(env.DB, week.id, nowIso);
-  if (!claimed) {
+
+  // The push reports the finished week: every sent prompt must be past its
+  // answer window, or answers landing after delivery would supersede the
+  // numbers on the lock screen. An open week defers to the next tick.
+  if (
+    await hasOpenSentPromptsBetween(
+      env.DB,
+      week.start.toISOString(),
+      week.end.toISOString(),
+      nowIso,
+    )
+  ) {
+    log("info", "weekly_summary_deferred", { week_id: week.id, reason: "prompts_open" });
+    return { skipped: true, reason: "prompts_open" };
+  }
+
+  const staleBeforeIso = new Date(
+    now.getTime() - WEEKLY_SUMMARY_CLAIM_LEASE_MS,
+  ).toISOString();
+  const claim = await claimWeeklySummary(env.DB, week.id, nowIso, staleBeforeIso);
+  if (claim === "skip") {
     log("info", "weekly_summary_skipped", { week_id: week.id, reason: "already_sent" });
     return { skipped: true, reason: "already_sent" };
   }
+  if (claim === "reconcile") {
+    // An earlier tick delivered the push but never stamped sent_at; finish
+    // the record without sending again.
+    await completeWeeklySummary(env.DB, week.id, nowIso);
+    log("info", "weekly_summary_reconciled", { week_id: week.id });
+    return { skipped: true, reason: "reconciled" };
+  }
 
+  let deliveredId: string | null = null;
   try {
     const current = await tallyRange(env.DB, week.start, week.end);
     const prior = await tallyRange(env.DB, week.priorStart, week.priorEnd);
     const message = formatWeeklySummaryMessage(current, prior);
+    await storeWeeklySummaryMessage(env.DB, week.id, message);
     const notification = await notifier.sendWeeklySummary(message);
-    await completeWeeklySummary(env.DB, week.id, notification.id, message, nowIso);
+    deliveredId = notification.id;
+    // Record the accepted push before the completion stamp: a row carrying
+    // notification_id is reconciled by later ticks, never resent.
+    await recordWeeklySummaryNotification(env.DB, week.id, notification.id);
+    await completeWeeklySummary(env.DB, week.id, nowIso);
 
     log("info", "weekly_summary_sent", {
       week_id: week.id,
@@ -236,7 +279,22 @@ export async function runWeeklySummary(
 
     return { skipped: false, weekId: week.id, message };
   } catch (error) {
-    await releaseWeeklySummary(env.DB, week.id);
+    if (deliveredId !== null) {
+      // The push is already out; releasing the claim would resend it. Persist
+      // the evidence again so later ticks reconcile. If this also fails, a
+      // lease-expired tick may resend — after an ambiguous accepted send the
+      // reachable guarantee is at-most-once-claimed, not exactly-once.
+      try {
+        await recordWeeklySummaryNotification(env.DB, week.id, deliveredId);
+      } catch {
+        log("error", "weekly_summary_delivery_unrecorded", {
+          week_id: week.id,
+          notification_id: deliveredId,
+        });
+      }
+    } else {
+      await releaseWeeklySummary(env.DB, week.id);
+    }
     throw error;
   }
 }

@@ -31,8 +31,9 @@ beforeAll(async () => {
     `CREATE TABLE IF NOT EXISTS weekly_summary (
       id TEXT PRIMARY KEY,
       created_at TEXT NOT NULL,
-      sent_at TEXT,
+      claimed_at TEXT,
       notification_id TEXT,
+      sent_at TEXT,
       message TEXT
     )`,
   ).run();
