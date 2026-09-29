@@ -16,3 +16,13 @@ jobs:
           cache: npm
       - name: Run local CI
         run: bash scripts/ci-local.sh
+
+  smoke-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Smoke test production /report
+        env:
+          BASE_URL: ${{ vars.BASE_URL }}
+          EXPORT_BEARER_TOKEN: ${{ secrets.EXPORT_BEARER_TOKEN }}
+        run: bash scripts/smoke-report.sh
