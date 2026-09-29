@@ -81,6 +81,35 @@ function mismatchFromUnknown(raw: unknown): boolean {
   return false;
 }
 
+const MANIFEST_TABLES = ["checkin_prompt", "checkin_response"] as const;
+
+function manifestVersionOf(raw: Record<string, unknown>): number | null {
+  const version = raw.manifest_version;
+  if (version === undefined) {
+    return 1;
+  }
+  if (typeof version !== "number" || !Number.isInteger(version) || version < 1) {
+    return null;
+  }
+  return version;
+}
+
+function isCompleteTableManifest(raw: unknown, version: number): boolean {
+  if (!isRecord(raw)) {
+    return false;
+  }
+  if (typeof raw.row_count !== "number" || typeof raw.object_key !== "string") {
+    return false;
+  }
+  if (version < 2) {
+    return true;
+  }
+  return (
+    typeof raw.source_row_count === "number" &&
+    typeof raw.source_count_mismatch === "boolean"
+  );
+}
+
 function parseManifestHead(
   slot: { readonly extractionDate: string; readonly objectTimestamp: string },
   body: string,
@@ -96,6 +125,18 @@ function parseManifestHead(
   }
   const stamp = raw.extraction_timestamp;
   if (typeof stamp !== "string" || Number.isNaN(Date.parse(stamp))) {
+    return null;
+  }
+  const version = manifestVersionOf(raw);
+  if (version === null || !isRecord(raw.tables)) {
+    return null;
+  }
+  for (const name of MANIFEST_TABLES) {
+    if (!isCompleteTableManifest(raw.tables[name], version)) {
+      return null;
+    }
+  }
+  if (version >= 2 && typeof raw.source_count_mismatch !== "boolean") {
     return null;
   }
   return {
@@ -115,10 +156,11 @@ async function readObjectText(
 }
 
 const MANIFEST_PREFIX = "raw/cloudflare/checkins/manifests/";
+const FALLBACK_MAX_READS = 25;
 
-async function lastManifestKey(bucket: R2Bucket): Promise<string | null> {
+async function manifestKeysNewestFirst(bucket: R2Bucket): Promise<string[]> {
+  const keys: string[] = [];
   let cursor: string | undefined;
-  let last: string | null = null;
   do {
     const page = await bucket.list({
       prefix: MANIFEST_PREFIX,
@@ -126,13 +168,11 @@ async function lastManifestKey(bucket: R2Bucket): Promise<string | null> {
       limit: 1000,
     });
     for (const object of page.objects) {
-      if (last === null || object.key > last) {
-        last = object.key;
-      }
+      keys.push(object.key);
     }
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor !== undefined);
-  return last;
+  return keys.sort().reverse();
 }
 
 async function loadExtract(
@@ -164,9 +204,17 @@ async function loadExtract(
       }
       manifests.push(head);
     }
-    if (manifests.length === 0 && unreadableKeys.length === 0) {
-      const key = await lastManifestKey(bucket);
-      if (key !== null) {
+    if (manifests.length === 0) {
+      const attempted = new Set(reads.map(({ key }) => key));
+      let readsDone = 0;
+      for (const key of await manifestKeysNewestFirst(bucket)) {
+        if (attempted.has(key)) {
+          continue;
+        }
+        if (readsDone >= FALLBACK_MAX_READS) {
+          break;
+        }
+        readsDone += 1;
         const slot = slotFromManifestKey(key);
         const object = await bucket.get(key);
         const head =
@@ -176,9 +224,10 @@ async function loadExtract(
         if (head === null) {
           log("error", "health_manifest_unreadable", { manifest_key: key });
           unreadableKeys.push(key);
-        } else {
-          manifests.push(head);
+          continue;
         }
+        manifests.push(head);
+        break;
       }
     }
   } catch (error) {

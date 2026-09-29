@@ -1,6 +1,10 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
-import { buildExportSlot, buildManifestObjectKey } from "../src/analytics-extract";
+import {
+  ExportSlot,
+  buildExportSlot,
+  buildManifestObjectKey,
+} from "../src/analytics-extract";
 import { REPORT_AUTH_CHALLENGE } from "../src/export";
 import { getLondonParts } from "../src/london-time";
 import {
@@ -8,6 +12,30 @@ import {
   latestDueSlot,
   recentExportSlots,
 } from "../src/health-strip";
+
+function manifestBody(
+  slot: ExportSlot,
+  overrides: Record<string, unknown> = {},
+): string {
+  const tableEntry = (table: string) => ({
+    row_count: 1,
+    source_row_count: 1,
+    object_key: `raw/cloudflare/checkins/${table}/extraction_date=${slot.extractionDate}/${slot.objectTimestamp}.jsonl.gz`,
+    source_count_mismatch: false,
+  });
+  return JSON.stringify({
+    manifest_version: 2,
+    extraction_timestamp: new Date(
+      slot.scheduledAt.getTime() + 3 * 60_000,
+    ).toISOString(),
+    source_count_mismatch: false,
+    tables: {
+      checkin_prompt: tableEntry("checkin_prompt"),
+      checkin_response: tableEntry("checkin_response"),
+    },
+    ...overrides,
+  });
+}
 
 const exportToken = "test-export-token";
 
@@ -60,7 +88,7 @@ async function clearManifests(): Promise<void> {
   await Promise.all(listed.objects.map((object) => bucket.delete(object.key)));
 }
 
-async function putDueManifest(body: Record<string, unknown>): Promise<string> {
+async function putDueManifest(overrides: Record<string, unknown>): Promise<string> {
   const bucket = await extractBucket();
   const now = new Date();
   const due = latestDueSlot(now);
@@ -72,7 +100,7 @@ async function putDueManifest(body: Record<string, unknown>): Promise<string> {
       }
     : buildExportSlot(now, 3, 0);
   const key = buildManifestObjectKey(slot);
-  await bucket.put(key, JSON.stringify(body));
+  await bucket.put(key, manifestBody(slot, overrides));
   return key;
 }
 
@@ -80,15 +108,7 @@ async function putAllRecentManifests(): Promise<void> {
   const bucket = await extractBucket();
   const now = new Date();
   for (const slot of recentExportSlots(now, FRESHNESS_LOOKBACK_DAYS)) {
-    await bucket.put(
-      buildManifestObjectKey(slot),
-      JSON.stringify({
-        extraction_timestamp: new Date(
-          slot.scheduledAt.getTime() + 3 * 60_000,
-        ).toISOString(),
-        source_count_mismatch: false,
-      }),
-    );
+    await bucket.put(buildManifestObjectKey(slot), manifestBody(slot));
   }
 }
 

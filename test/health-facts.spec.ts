@@ -1,12 +1,45 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
-import { buildManifestObjectKey, buildExportSlot } from "../src/analytics-extract";
+import {
+  ExportSlot,
+  buildManifestObjectKey,
+  buildExportSlot,
+} from "../src/analytics-extract";
 import { loadHealthFacts } from "../src/health-facts";
 import {
   FRESHNESS_LOOKBACK_DAYS,
   assessHealth,
   dueExportSlots,
 } from "../src/health-strip";
+
+function manifestBody(
+  slot: ExportSlot,
+  options: {
+    extractionTimestamp?: string;
+    promptMismatch?: boolean;
+    responseMismatch?: boolean;
+  } = {},
+): string {
+  const tableEntry = (table: string, mismatch: boolean) => ({
+    row_count: 1,
+    source_row_count: mismatch ? 2 : 1,
+    object_key: `raw/cloudflare/checkins/${table}/extraction_date=${slot.extractionDate}/${slot.objectTimestamp}.jsonl.gz`,
+    source_count_mismatch: mismatch,
+  });
+  const promptMismatch = options.promptMismatch ?? false;
+  const responseMismatch = options.responseMismatch ?? false;
+  return JSON.stringify({
+    manifest_version: 2,
+    extraction_timestamp:
+      options.extractionTimestamp ??
+      new Date(slot.scheduledAt.getTime() + 3 * 60_000).toISOString(),
+    source_count_mismatch: promptMismatch || responseMismatch,
+    tables: {
+      checkin_prompt: tableEntry("checkin_prompt", promptMismatch),
+      checkin_response: tableEntry("checkin_response", responseMismatch),
+    },
+  });
+}
 
 class MemoryR2Object {
   constructor(private readonly data: ArrayBuffer) {}
@@ -126,19 +159,7 @@ describe("loadHealthFacts", () => {
 
     const bucket = new MemoryR2Bucket();
     for (const slot of dueExportSlots(NOW, FRESHNESS_LOOKBACK_DAYS)) {
-      await bucket.put(
-        buildManifestObjectKey(slot),
-        JSON.stringify({
-          extraction_timestamp: new Date(
-            slot.scheduledAt.getTime() + 3 * 60_000,
-          ).toISOString(),
-          source_count_mismatch: false,
-          tables: {
-            checkin_prompt: { source_count_mismatch: false },
-            checkin_response: { source_count_mismatch: false },
-          },
-        }),
-      );
+      await bucket.put(buildManifestObjectKey(slot), manifestBody(slot));
     }
 
     const loaded = await loadHealthFacts(
@@ -180,13 +201,7 @@ describe("loadHealthFacts", () => {
   it("keeps the last refresh when the newest manifest is beyond the probe window", async () => {
     const bucket = new MemoryR2Bucket();
     const oldSlot = buildExportSlot(new Date("2026-09-18T00:00:00.000Z"), 3, 0);
-    await bucket.put(
-      buildManifestObjectKey(oldSlot),
-      JSON.stringify({
-        extraction_timestamp: "2026-09-18T03:03:00.000Z",
-        source_count_mismatch: false,
-      }),
-    );
+    await bucket.put(buildManifestObjectKey(oldSlot), manifestBody(oldSlot));
 
     const loaded = await loadHealthFacts(
       { DB: env.DB, EXTRACT_BUCKET: bucket as unknown as R2Bucket },
@@ -220,6 +235,95 @@ describe("loadHealthFacts", () => {
     }
   });
 
+  it("finds the last readable manifest behind a corrupt recent one", async () => {
+    const bucket = new MemoryR2Bucket();
+    const due = dueExportSlots(NOW, FRESHNESS_LOOKBACK_DAYS);
+    const corrupt = due[due.length - 1];
+    await bucket.put(buildManifestObjectKey(corrupt), "not json{");
+    const oldSlot = buildExportSlot(new Date("2026-09-18T00:00:00.000Z"), 3, 0);
+    await bucket.put(buildManifestObjectKey(oldSlot), manifestBody(oldSlot));
+
+    const loaded = await loadHealthFacts(
+      { DB: env.DB, EXTRACT_BUCKET: bucket as unknown as R2Bucket },
+      NOW,
+    );
+    if (loaded.extract.kind !== "bucket") {
+      throw new Error("expected bucket facts");
+    }
+    expect(loaded.extract.manifests).toHaveLength(1);
+    expect(loaded.extract.manifests[0].extractionTimestamp).toBe(
+      "2026-09-18T03:03:00.000Z",
+    );
+    expect(loaded.extract.unreadableKeys).toEqual([
+      buildManifestObjectKey(corrupt),
+    ]);
+
+    const strip = assessHealth(loaded);
+    if (
+      strip.extract.kind !== "landed" ||
+      strip.extract.freshness.kind !== "stale"
+    ) {
+      throw new Error("expected landed extract with stale freshness");
+    }
+    expect(strip.extract.refreshedAt).toBe("2026-09-18T03:03:00.000Z");
+    expect(strip.extract.freshness.causes).toContainEqual({
+      kind: "unreadable-manifest",
+      slot: {
+        extractionDate: corrupt.extractionDate,
+        objectTimestamp: corrupt.objectTimestamp,
+      },
+      key: buildManifestObjectKey(corrupt),
+    });
+    expect(strip.extract.freshness.causes).toContainEqual({
+      kind: "older-than-24h",
+    });
+  });
+
+  it("treats a manifest missing table metadata as unreadable", async () => {
+    const bucket = new MemoryR2Bucket();
+    const due = dueExportSlots(NOW, FRESHNESS_LOOKBACK_DAYS);
+    const incomplete = due[due.length - 1];
+    for (const slot of due) {
+      if (slot === incomplete) {
+        continue;
+      }
+      await bucket.put(buildManifestObjectKey(slot), manifestBody(slot));
+    }
+    await bucket.put(
+      buildManifestObjectKey(incomplete),
+      JSON.stringify({ extraction_timestamp: "2026-09-28T15:03:00.000Z" }),
+    );
+
+    const loaded = await loadHealthFacts(
+      { DB: env.DB, EXTRACT_BUCKET: bucket as unknown as R2Bucket },
+      NOW,
+    );
+    if (loaded.extract.kind !== "bucket") {
+      throw new Error("expected bucket facts");
+    }
+    expect(loaded.extract.unreadableKeys).toEqual([
+      buildManifestObjectKey(incomplete),
+    ]);
+
+    const strip = assessHealth(loaded);
+    if (
+      strip.extract.kind !== "landed" ||
+      strip.extract.freshness.kind !== "stale"
+    ) {
+      throw new Error("expected landed extract with stale freshness");
+    }
+    expect(strip.extract.freshness.causes).toEqual([
+      {
+        kind: "unreadable-manifest",
+        slot: {
+          extractionDate: incomplete.extractionDate,
+          objectTimestamp: incomplete.objectTimestamp,
+        },
+        key: buildManifestObjectKey(incomplete),
+      },
+    ]);
+  });
+
   it("records a corrupt due manifest as unreadable rather than missed", async () => {
     const bucket = new MemoryR2Bucket();
     const due = dueExportSlots(NOW, FRESHNESS_LOOKBACK_DAYS);
@@ -228,14 +332,7 @@ describe("loadHealthFacts", () => {
       if (slot === corrupt) {
         continue;
       }
-      await bucket.put(
-        buildManifestObjectKey(slot),
-        JSON.stringify({
-          extraction_timestamp: new Date(
-            slot.scheduledAt.getTime() + 3 * 60_000,
-          ).toISOString(),
-        }),
-      );
+      await bucket.put(buildManifestObjectKey(slot), manifestBody(slot));
     }
     await bucket.put(buildManifestObjectKey(corrupt), "not json{");
 
@@ -274,13 +371,7 @@ describe("loadHealthFacts", () => {
     const slot = buildExportSlot(NOW, 15, 0);
     await bucket.put(
       buildManifestObjectKey(slot),
-      JSON.stringify({
-        extraction_timestamp: "2026-09-28T15:03:00.000Z",
-        tables: {
-          checkin_prompt: { source_count_mismatch: true },
-          checkin_response: { source_count_mismatch: false },
-        },
-      }),
+      manifestBody(slot, { promptMismatch: true }),
     );
 
     const loaded = await loadHealthFacts(
