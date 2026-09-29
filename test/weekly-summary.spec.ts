@@ -22,6 +22,7 @@ import {
 } from "../src/weekly-summary";
 
 class RecordingNotifier implements Notifier {
+  readonly deliversNotifications = true;
   readonly checkins: string[] = [];
   readonly summaries: string[] = [];
   failNextSummary = false;
@@ -29,6 +30,11 @@ class RecordingNotifier implements Notifier {
   async sendCheckin(url: string): Promise<NotificationResult> {
     this.checkins.push(url);
     return { id: `checkin-${this.checkins.length}` };
+  }
+
+  async sendAlert(_title: string, message: string): Promise<NotificationResult> {
+    this.summaries.push(message);
+    return { id: `alert-${this.summaries.length}` };
   }
 
   async sendWeeklySummary(message: string): Promise<NotificationResult> {

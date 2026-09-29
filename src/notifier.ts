@@ -3,18 +3,22 @@ export interface NotificationResult {
 }
 
 export interface Notifier {
+  readonly deliversNotifications: boolean;
   sendCheckin(url: string): Promise<NotificationResult>;
   sendWeeklySummary(message: string): Promise<NotificationResult>;
+  sendAlert(title: string, message: string): Promise<NotificationResult>;
 }
 
 export class PushoverNotifier implements Notifier {
+  readonly deliversNotifications = true;
+
   constructor(
     private readonly token: string,
     private readonly user: string,
   ) {}
 
   async sendCheckin(url: string): Promise<NotificationResult> {
-    return this.send({
+    return this.post({
       message: "Time for a mood check-in",
       title: "checkin",
       url,
@@ -23,13 +27,17 @@ export class PushoverNotifier implements Notifier {
   }
 
   async sendWeeklySummary(message: string): Promise<NotificationResult> {
-    return this.send({
+    return this.post({
       message,
       title: "Weekly check-in",
     });
   }
 
-  private async send(fields: Record<string, string>): Promise<NotificationResult> {
+  async sendAlert(title: string, message: string): Promise<NotificationResult> {
+    return this.post({ title, message });
+  }
+
+  private async post(fields: Record<string, string>): Promise<NotificationResult> {
     const body = new URLSearchParams({
       token: this.token,
       user: this.user,
@@ -56,11 +64,17 @@ export class PushoverNotifier implements Notifier {
 }
 
 export class NoopNotifier implements Notifier {
+  readonly deliversNotifications = false;
+
   async sendCheckin(_url: string): Promise<NotificationResult> {
     return { id: "noop" };
   }
 
   async sendWeeklySummary(_message: string): Promise<NotificationResult> {
     return { id: "noop-weekly" };
+  }
+
+  async sendAlert(_title: string, _message: string): Promise<NotificationResult> {
+    return { id: "noop" };
   }
 }

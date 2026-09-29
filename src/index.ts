@@ -1,3 +1,4 @@
+import { runAnswerRateAlert } from "./answer-rate-alert";
 import { renderCheckinPage, renderRecordedPage } from "./checkin-page";
 import { runAnalyticsExtract } from "./analytics-extract";
 import {
@@ -132,6 +133,14 @@ export default {
       await runWeeklySummary(env, notifier, now);
     } catch (error) {
       log("error", "weekly_summary_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+
+    try {
+      await runAnswerRateAlert(env, notifier, now);
+    } catch (error) {
+      log("error", "answer_rate_alert_failed", {
         error: error instanceof Error ? error.message : "unknown",
       });
     }

@@ -37,4 +37,16 @@ beforeAll(async () => {
       message TEXT
     )`,
   ).run();
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS checkin_alert_state (
+      id TEXT PRIMARY KEY,
+      notified_status TEXT CHECK (notified_status IS NULL OR notified_status IN ('ok', 'breach')),
+      evaluated_at TEXT NOT NULL,
+      answered INTEGER NOT NULL,
+      sent INTEGER NOT NULL,
+      rate REAL,
+      window_from TEXT NOT NULL,
+      window_to TEXT NOT NULL
+    )`,
+  ).run();
 });
