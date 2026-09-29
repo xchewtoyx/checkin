@@ -107,9 +107,17 @@ async function handleCheckinToken(
   });
 }
 
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
 async function handleReport(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") {
     return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  const url = new URL(request.url);
+  if (url.protocol === "http:" && !LOCAL_HOSTNAMES.has(url.hostname)) {
+    url.protocol = "https:";
+    return Response.redirect(url.toString(), 308);
   }
 
   if (!authorizeReport(request, env.EXPORT_BEARER_TOKEN)) {

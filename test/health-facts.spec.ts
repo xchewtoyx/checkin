@@ -10,6 +10,8 @@ import {
   FRESHNESS_LOOKBACK_DAYS,
   assessHealth,
   dueExportSlots,
+  recentExportSlots,
+  renderHealthStrip,
 } from "../src/health-strip";
 
 function manifestBody(
@@ -52,6 +54,7 @@ class MemoryR2Object {
 class MemoryR2Bucket {
   private readonly objects = new Map<string, ArrayBuffer>();
   failGet = false;
+  readonly failKeys = new Set<string>();
 
   async put(key: string, value: ArrayBuffer | string): Promise<void> {
     const buffer =
@@ -60,7 +63,7 @@ class MemoryR2Bucket {
   }
 
   async get(key: string): Promise<MemoryR2Object | null> {
-    if (this.failGet) {
+    if (this.failGet || this.failKeys.has(key)) {
       throw new Error("r2 unavailable");
     }
     const data = this.objects.get(key);
@@ -384,6 +387,87 @@ describe("loadHealthFacts", () => {
     });
   });
 
+  it("keeps landed manifests when a single slot read fails", async () => {
+    const bucket = new MemoryR2Bucket();
+    const due = dueExportSlots(NOW, FRESHNESS_LOOKBACK_DAYS);
+    for (const slot of due) {
+      await bucket.put(buildManifestObjectKey(slot), manifestBody(slot));
+    }
+    const failed = due[0];
+    bucket.failKeys.add(buildManifestObjectKey(failed));
+
+    const loaded = await loadHealthFacts(
+      { DB: env.DB, EXTRACT_BUCKET: bucket as unknown as R2Bucket },
+      NOW,
+    );
+    if (loaded.extract.kind !== "bucket") {
+      throw new Error("expected bucket facts");
+    }
+    expect(loaded.extract.manifests).toHaveLength(due.length - 1);
+    expect(loaded.extract.unreadableKeys).toEqual([
+      buildManifestObjectKey(failed),
+    ]);
+
+    const strip = assessHealth(loaded);
+    if (
+      strip.extract.kind !== "landed" ||
+      strip.extract.freshness.kind !== "stale"
+    ) {
+      throw new Error("expected landed extract with stale freshness");
+    }
+    expect(strip.extract.refreshedAt).toBe("2026-09-28T15:03:00.000Z");
+    expect(strip.extract.freshness.causes).toEqual([
+      {
+        kind: "unreadable-manifest",
+        slot: {
+          extractionDate: failed.extractionDate,
+          objectTimestamp: failed.objectTimestamp,
+        },
+        key: buildManifestObjectKey(failed),
+      },
+    ]);
+  });
+
+  it("marks a version-one manifest's integrity as unknown", async () => {
+    const bucket = new MemoryR2Bucket();
+    const due = dueExportSlots(NOW, FRESHNESS_LOOKBACK_DAYS);
+    const v1Slot = due[due.length - 1];
+    for (const slot of due) {
+      if (slot === v1Slot) {
+        continue;
+      }
+      await bucket.put(buildManifestObjectKey(slot), manifestBody(slot));
+    }
+    const v1Table = (table: string) => ({
+      row_count: 1,
+      object_key: `raw/cloudflare/checkins/${table}/extraction_date=${v1Slot.extractionDate}/${v1Slot.objectTimestamp}.jsonl.gz`,
+    });
+    await bucket.put(
+      buildManifestObjectKey(v1Slot),
+      JSON.stringify({
+        extraction_timestamp: "2026-09-28T15:03:00.000Z",
+        tables: {
+          checkin_prompt: v1Table("checkin_prompt"),
+          checkin_response: v1Table("checkin_response"),
+        },
+      }),
+    );
+
+    const loaded = await loadHealthFacts(
+      { DB: env.DB, EXTRACT_BUCKET: bucket as unknown as R2Bucket },
+      NOW,
+    );
+    const strip = assessHealth(loaded);
+    expect(strip.extract).toMatchObject({
+      kind: "landed",
+      integrity: "unknown",
+      freshness: { kind: "current" },
+    });
+    expect(strip.glance).toBe("attention");
+    expect(renderHealthStrip(strip)).toContain("Source counts unverified");
+    expect(renderHealthStrip(strip)).toContain('data-integrity="unknown"');
+  });
+
   it("does not throw when the extract bucket fails, and records the read as unreadable", async () => {
     const bucket = new MemoryR2Bucket();
     bucket.failGet = true;
@@ -391,14 +475,17 @@ describe("loadHealthFacts", () => {
       { DB: env.DB, EXTRACT_BUCKET: bucket as unknown as R2Bucket },
       NOW,
     );
+    const expectedKeys = recentExportSlots(NOW, FRESHNESS_LOOKBACK_DAYS).map(
+      (slot) => buildManifestObjectKey(slot),
+    );
     expect(loaded.extract).toEqual({
       kind: "bucket",
       manifests: [],
-      unreadableKeys: ["raw/cloudflare/checkins/manifests/"],
+      unreadableKeys: expectedKeys,
     });
     expect(assessHealth(loaded).extract).toMatchObject({
       kind: "unreadable",
-      key: "raw/cloudflare/checkins/manifests/",
+      key: expectedKeys[0],
     });
   });
 

@@ -25,10 +25,12 @@ export type SlotId = {
   readonly objectTimestamp: string;
 };
 
+export type ExtractIntegrity = "match" | "mismatch" | "unknown";
+
 export type ManifestHead = {
   readonly slot: SlotId;
   readonly extractionTimestamp: string;
-  readonly sourceCountMismatch: boolean;
+  readonly integrity: ExtractIntegrity;
 };
 
 export type ExtractFacts =
@@ -84,7 +86,7 @@ export type ExtractReading =
       readonly refreshedAt: string;
       readonly slot: SlotId;
       readonly freshness: Freshness;
-      readonly integrity: "match" | "mismatch";
+      readonly integrity: ExtractIntegrity;
     };
 
 export type Glance = "healthy" | "attention" | "absent";
@@ -121,7 +123,7 @@ export function manifestHead(
   extractionDate: string,
   objectTimestamp: string,
   extractionTimestamp: string,
-  sourceCountMismatch: boolean,
+  integrity: ExtractIntegrity,
 ): ManifestHead {
   if (!CIVIL_DATE_RE.test(extractionDate) || !SLOT_STAMP_RE.test(objectTimestamp)) {
     throw new Error("invalid manifest slot");
@@ -132,7 +134,7 @@ export function manifestHead(
   return {
     slot: { extractionDate, objectTimestamp },
     extractionTimestamp,
-    sourceCountMismatch,
+    integrity,
   };
 }
 
@@ -352,7 +354,7 @@ function extractReading(extract: ExtractFacts, observedAt: string): ExtractReadi
     refreshedAt: latest.extractionTimestamp,
     slot: latest.slot,
     freshness: freshnessFor(latest, extract, observedAt),
-    integrity: latest.sourceCountMismatch ? "mismatch" : "match",
+    integrity: latest.integrity,
   };
 }
 
@@ -429,7 +431,7 @@ function freshnessCauses(freshness: Freshness): string[] {
     if (cause.kind === "unreadable-manifest") {
       labels.push(
         cause.slot === null
-          ? `unreadable manifest ${cause.key}`
+          ? `unreadable manifest ${escapeHtml(cause.key)}`
           : `unreadable manifest ${slotTimeLabel(cause.slot)}`,
       );
       continue;
@@ -464,7 +466,12 @@ function extractCell(extract: ExtractReading): string {
   }
   const causes = freshnessCauses(extract.freshness);
   const stalePrefix = causes.length > 0 ? `Stale · ${causes.join(" · ")} · ` : "";
-  const mismatch = extract.integrity === "mismatch" ? " · Source count mismatch" : "";
+  const mismatch =
+    extract.integrity === "mismatch"
+      ? " · Source count mismatch"
+      : extract.integrity === "unknown"
+        ? " · Source counts unverified"
+        : "";
   return `<div data-extract="landed" data-freshness="${extract.freshness.kind}" data-integrity="${extract.integrity}"><p class="eyebrow">Analytics extract</p><p class="figure">${stalePrefix}Refreshed ${escapeHtml(extract.refreshedAt)}${mismatch}</p></div>`;
 }
 

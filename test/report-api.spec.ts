@@ -119,21 +119,30 @@ describe("GET /report", () => {
     await clearManifests();
   });
 
+  it("redirects cleartext requests to https before issuing a challenge", async () => {
+    const response = await SELF.fetch("http://example.com/report", {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://example.com/report");
+    expect(response.headers.get("www-authenticate")).toBeNull();
+  });
+
   it("challenges unauthenticated browsers with Basic", async () => {
-    const response = await SELF.fetch("http://example.com/report");
+    const response = await SELF.fetch("https://example.com/report");
     expect(response.status).toBe(401);
     expect(response.headers.get("www-authenticate")).toBe(REPORT_AUTH_CHALLENGE);
   });
 
   it("rejects a wrong bearer token", async () => {
-    const response = await SELF.fetch("http://example.com/report", {
+    const response = await SELF.fetch("https://example.com/report", {
       headers: { authorization: "Bearer no" },
     });
     expect(response.status).toBe(401);
   });
 
   it("rejects POST", async () => {
-    const response = await SELF.fetch("http://example.com/report", {
+    const response = await SELF.fetch("https://example.com/report", {
       method: "POST",
       headers: bearerHeaders(),
     });
@@ -141,7 +150,7 @@ describe("GET /report", () => {
   });
 
   it("renders absent, not 0%, when there are no closed prompts and no extract", async () => {
-    const response = await SELF.fetch("http://example.com/report", {
+    const response = await SELF.fetch("https://example.com/report", {
       headers: bearerHeaders(),
     });
     expect(response.status).toBe(200);
@@ -158,7 +167,7 @@ describe("GET /report", () => {
   });
 
   it("accepts Basic auth with the export token as the password", async () => {
-    const response = await SELF.fetch("http://example.com/report", {
+    const response = await SELF.fetch("https://example.com/report", {
       headers: basicHeaders("ignored"),
     });
     expect(response.status).toBe(200);
@@ -198,7 +207,7 @@ describe("GET /report", () => {
 
     await putAllRecentManifests();
 
-    const response = await SELF.fetch("http://example.com/report", {
+    const response = await SELF.fetch("https://example.com/report", {
       headers: bearerHeaders(),
     });
     expect(response.status).toBe(200);
@@ -216,7 +225,7 @@ describe("GET /report", () => {
       source_count_mismatch: true,
     });
 
-    const response = await SELF.fetch("http://example.com/report", {
+    const response = await SELF.fetch("https://example.com/report", {
       headers: bearerHeaders(),
     });
     const html = await response.text();

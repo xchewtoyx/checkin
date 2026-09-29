@@ -145,7 +145,12 @@ function parseManifestHead(
       objectTimestamp: slot.objectTimestamp,
     },
     extractionTimestamp: stamp,
-    sourceCountMismatch: mismatchFromUnknown(raw),
+    integrity:
+      version >= 2
+        ? mismatchFromUnknown(raw)
+          ? "mismatch"
+          : "match"
+        : "unknown",
   };
 }
 
@@ -189,14 +194,34 @@ async function loadExtract(
     const reads = await Promise.all(
       slots.map(async (slot) => {
         const key = buildManifestObjectKey(slot);
-        return { slot, key, object: await bucket.get(key) };
+        try {
+          const object = await bucket.get(key);
+          return { slot, key, object };
+        } catch (error) {
+          log("error", "health_manifest_read_failed", {
+            manifest_key: key,
+            error: error instanceof Error ? error.message : "unknown",
+          });
+          unreadableKeys.push(key);
+          return { slot, key, object: null };
+        }
       }),
     );
     for (const { slot, key, object } of reads) {
       if (!object) {
         continue;
       }
-      const head = parseManifestHead(slot, await readObjectText(object));
+      let head: ManifestHead | null;
+      try {
+        head = parseManifestHead(slot, await readObjectText(object));
+      } catch (error) {
+        log("error", "health_manifest_read_failed", {
+          manifest_key: key,
+          error: error instanceof Error ? error.message : "unknown",
+        });
+        unreadableKeys.push(key);
+        continue;
+      }
       if (!head) {
         log("error", "health_manifest_unreadable", { manifest_key: key });
         unreadableKeys.push(key);
@@ -216,11 +241,18 @@ async function loadExtract(
         }
         readsDone += 1;
         const slot = slotFromManifestKey(key);
-        const object = await bucket.get(key);
-        const head =
-          slot === null || object === null
-            ? null
-            : parseManifestHead(slot, await readObjectText(object));
+        let head: ManifestHead | null = null;
+        try {
+          const object = await bucket.get(key);
+          if (slot !== null && object !== null) {
+            head = parseManifestHead(slot, await readObjectText(object));
+          }
+        } catch (error) {
+          log("error", "health_manifest_read_failed", {
+            manifest_key: key,
+            error: error instanceof Error ? error.message : "unknown",
+          });
+        }
         if (head === null) {
           log("error", "health_manifest_unreadable", { manifest_key: key });
           unreadableKeys.push(key);

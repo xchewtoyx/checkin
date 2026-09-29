@@ -48,7 +48,7 @@ function dueSlotManifests(observedAt: string): ManifestHead[] {
         slot.extractionDate,
         slot.objectTimestamp,
         new Date(slot.scheduledAt.getTime() + 5 * 60_000).toISOString(),
-        false,
+        "match",
       ),
   );
 }
@@ -342,6 +342,25 @@ describe("assessHealth extract freshness", () => {
     expect(html).not.toContain("missed 2026-09-28 15:00 UTC");
   });
 
+  it("escapes an unreadable manifest key without a parseable slot", () => {
+    const strip = assessHealth(
+      facts({
+        extract: {
+          kind: "bucket",
+          manifests: dueSlotManifests(OBSERVED),
+          unreadableKeys: [
+            'raw/cloudflare/checkins/manifests/junk"><img src=x onerror=alert(1)>',
+          ],
+        },
+      }),
+    );
+    const html = renderHealthStrip(strip);
+    expect(html).not.toContain('<img src=x onerror=alert(1)>');
+    expect(html).toContain(
+      "unreadable manifest raw/cloudflare/checkins/manifests/junk&quot;&gt;&lt;img src=x onerror=alert(1)&gt;",
+    );
+  });
+
   it("treats an extract exactly 24h old as current when the due slot is present", () => {
     const strip = assessHealth(
       facts({
@@ -353,7 +372,7 @@ describe("assessHealth extract freshness", () => {
               head.slot.extractionDate,
               head.slot.objectTimestamp,
               "2026-09-27T15:20:00.000Z",
-              false,
+              "match",
             ),
           ),
           unreadableKeys: [],
@@ -377,7 +396,7 @@ describe("assessHealth extract freshness", () => {
               head.slot.extractionDate,
               head.slot.objectTimestamp,
               "2026-09-27T15:19:59.000Z",
-              false,
+              "match",
             ),
           ),
           unreadableKeys: [],
@@ -398,7 +417,7 @@ describe("assessHealth extract freshness", () => {
         extract: {
           kind: "bucket",
           manifests: [
-            manifestHead("2026-09-27", "150000", "2026-09-27T15:05:00.000Z", false),
+            manifestHead("2026-09-27", "150000", "2026-09-27T15:05:00.000Z", "match"),
           ],
           unreadableKeys: [],
         },
@@ -429,7 +448,7 @@ describe("assessHealth extract freshness", () => {
         extract: {
           kind: "bucket",
           manifests: [
-            manifestHead("2026-09-28", "030000", "2026-09-28T03:05:00.000Z", true),
+            manifestHead("2026-09-28", "030000", "2026-09-28T03:05:00.000Z", "mismatch"),
           ],
           unreadableKeys: [],
         },
