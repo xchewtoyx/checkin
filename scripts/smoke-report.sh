@@ -120,12 +120,8 @@ elif extract == "unreadable":
 elif extract == "landed":
     if not extract_figure or "Refreshed " not in extract_figure:
         errors.append("landed extract must show a refresh timestamp")
-    if freshness in {
-        "missed-slot",
-        "older-than-24h",
-        "missed-slot-and-older-than-24h",
-    }:
-        if not extract_figure.startswith("Stale ·"):
+    if freshness == "stale":
+        if not (extract_figure or "").startswith("Stale ·"):
             errors.append("stale extract must be visibly flagged")
     elif freshness != "current":
         errors.append("landed extract freshness missing")
