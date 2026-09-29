@@ -162,22 +162,28 @@ async function readObjectText(
 
 const MANIFEST_PREFIX = "raw/cloudflare/checkins/manifests/";
 const FALLBACK_MAX_READS = 25;
+const FALLBACK_MAX_DAYS = 400;
 
-async function manifestKeysNewestFirst(bucket: R2Bucket): Promise<string[]> {
-  const keys: string[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await bucket.list({
-      prefix: MANIFEST_PREFIX,
-      cursor,
-      limit: 1000,
+async function* manifestKeysNewestFirst(
+  bucket: R2Bucket,
+  now: Date,
+): AsyncGenerator<string> {
+  for (let dayOffset = 0; dayOffset <= FALLBACK_MAX_DAYS; dayOffset += 1) {
+    const day = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - dayOffset,
+      ),
+    );
+    const listed = await bucket.list({
+      prefix: `${MANIFEST_PREFIX}extraction_date=${day.toISOString().slice(0, 10)}/`,
     });
-    for (const object of page.objects) {
-      keys.push(object.key);
+    const keys = listed.objects.map((object) => object.key).sort();
+    for (const key of keys.reverse()) {
+      yield key;
     }
-    cursor = page.truncated ? page.cursor : undefined;
-  } while (cursor !== undefined);
-  return keys.sort().reverse();
+  }
 }
 
 async function loadExtract(
@@ -232,7 +238,7 @@ async function loadExtract(
     if (manifests.length === 0) {
       const attempted = new Set(reads.map(({ key }) => key));
       let readsDone = 0;
-      for (const key of await manifestKeysNewestFirst(bucket)) {
+      for await (const key of manifestKeysNewestFirst(bucket, now)) {
         if (attempted.has(key)) {
           continue;
         }
