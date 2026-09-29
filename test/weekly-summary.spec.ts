@@ -43,9 +43,16 @@ const SUNDAY_TOO_EARLY = new Date("2026-06-07T18:59:00.000Z");
 async function seedPrompt(
   id: string,
   scheduledFor: string,
-  options: { sent?: boolean; feeling?: string; intensity?: number } = {},
+  options: { sent?: boolean; feeling?: string; intensity?: number; declined?: boolean } = {},
 ): Promise<void> {
   const sent = options.sent !== false;
+  const status = !sent
+    ? "failed"
+    : options.declined
+      ? "declined"
+      : options.intensity !== undefined
+        ? "answered"
+        : "expired";
   const row: PromptRow = {
     id,
     scheduled_for: scheduledFor,
@@ -53,7 +60,7 @@ async function seedPrompt(
     expires_at: sent ? "2026-06-08T12:00:00.000Z" : null,
     response_token: id.replace(/[^a-f0-9]/g, "").padEnd(8, "a").slice(0, 8),
     notification_id: sent ? "n1" : null,
-    status: sent ? (options.intensity !== undefined ? "answered" : "expired") : "failed",
+    status,
     created_at: scheduledFor,
   };
   await insertPrompt(env.DB, row);
@@ -87,7 +94,7 @@ describe("signed mood", () => {
       { feeling: "calm", intensity: 2 },
     ]);
     expect(formatWeeklySummaryMessage(angry, calm)).toBe(
-      "3/3 answered. -8.7, down from +2.7.",
+      "3/3 answered · 0 declined. -8.7, down from +2.7.",
     );
   });
 });
@@ -106,7 +113,7 @@ describe("weekly summary message", () => {
       { feeling: "sad", intensity: 5 },
     ]);
     expect(formatWeeklySummaryMessage(current, prior)).toBe(
-      "4/21 answered. +4.0, up from -5.7.",
+      "4/21 answered · 0 declined. +4.0, up from -5.7.",
     );
   });
 
@@ -122,7 +129,7 @@ describe("weekly summary message", () => {
       { feeling: "calm", intensity: 4 },
     ]);
     expect(formatWeeklySummaryMessage(current, prior)).toBe(
-      "3/21 answered. +4.0, same as last week.",
+      "3/21 answered · 0 declined. +4.0, same as last week.",
     );
   });
 
@@ -137,7 +144,7 @@ describe("weekly summary message", () => {
       { feeling: "calm", intensity: 4 },
     ]);
     expect(formatWeeklySummaryMessage(current, prior)).toBe(
-      "3/21 answered. +7.0. No prior week to compare.",
+      "3/21 answered · 0 declined. +7.0. No prior week to compare.",
     );
   });
 
@@ -148,7 +155,22 @@ describe("weekly summary message", () => {
       { feeling: "calm", intensity: 9 },
     ]);
     expect(formatWeeklySummaryMessage(current, tallyWeek(21, []))).toBe(
-      "Too little data to summarise (2/21).",
+      "Too little data to summarise (2/21 answered · 0 declined).",
+    );
+  });
+
+  it("names declines as a third category next to the answered/sent rate", () => {
+    const current = tallyWeek(
+      21,
+      [
+        { feeling: "calm", intensity: 6 },
+        { feeling: "calm", intensity: 7 },
+        { feeling: "calm", intensity: 8 },
+      ],
+      4,
+    );
+    expect(formatWeeklySummaryMessage(current, tallyWeek(21, []))).toBe(
+      "3/21 answered · 4 declined. +7.0. No prior week to compare.",
     );
   });
 });
@@ -201,9 +223,9 @@ describe("runWeeklySummary", () => {
     expect(result).toEqual({
       skipped: false,
       weekId: "weekly-2026-06-01",
-      message: "3/4 answered. +2.0, up from -4.7.",
+      message: "3/4 answered · 0 declined. +2.0, up from -4.7.",
     });
-    expect(notifier.summaries).toEqual(["3/4 answered. +2.0, up from -4.7."]);
+    expect(notifier.summaries).toEqual(["3/4 answered · 0 declined. +2.0, up from -4.7."]);
   });
 
   it("does not send twice for the same week", async () => {

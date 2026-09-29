@@ -1,4 +1,5 @@
 import { getLondonParts } from "./london-time";
+import { closedPromptOutcome } from "./store";
 import {
   EXPORT_SLOT_WINDOW_MINUTES,
   EXPORT_SLOTS_UTC,
@@ -12,7 +13,7 @@ export const FRESH_WITHIN_MS = 24 * 60 * 60 * 1000;
 export const HEALTHY_FLOOR_PERCENT = 75;
 export const FRICTION_FLOOR_PERCENT = 50;
 
-export type DeliveredStatus = "sent" | "answered" | "expired";
+export type DeliveredStatus = "sent" | "answered" | "declined" | "expired";
 
 export type DeliveredPrompt = {
   readonly dateKey: string;
@@ -60,6 +61,7 @@ export type AnswerReading =
   | {
       readonly kind: "measured";
       readonly answered: number;
+      readonly declined: number;
       readonly sent: number;
       readonly percent: number;
       readonly band: RateBand;
@@ -209,16 +211,6 @@ export function slotKey(slot: SlotId): string {
   return `${slot.extractionDate}/${slot.objectTimestamp}`;
 }
 
-function isClosedBy(prompt: DeliveredPrompt, observedAt: string): boolean {
-  if (prompt.status === "answered" || prompt.status === "expired") {
-    return true;
-  }
-  if (prompt.status !== "sent" || prompt.expiresAt === null) {
-    return false;
-  }
-  return Date.parse(prompt.expiresAt) <= Date.parse(observedAt);
-}
-
 function bandForPercent(percent: number): RateBand {
   if (percent >= HEALTHY_FLOOR_PERCENT) {
     return "healthy";
@@ -235,17 +227,21 @@ function answerReading(
   observedAt: string,
 ): AnswerReading {
   let answered = 0;
+  let declined = 0;
   let sent = 0;
   for (const prompt of delivered) {
     if (prompt.dateKey < window.start || prompt.dateKey > window.end) {
       continue;
     }
-    if (!isClosedBy(prompt, observedAt)) {
+    const outcome = closedPromptOutcome(prompt.status, prompt.expiresAt, observedAt);
+    if (outcome === null) {
       continue;
     }
     sent += 1;
-    if (prompt.status === "answered") {
+    if (outcome === "answered") {
       answered += 1;
+    } else if (outcome === "declined") {
+      declined += 1;
     }
   }
   if (sent === 0) {
@@ -255,6 +251,7 @@ function answerReading(
   return {
     kind: "measured",
     answered,
+    declined,
     sent,
     percent,
     band: bandForPercent(percent),
@@ -450,7 +447,8 @@ function answerCell(answer: AnswerReading): string {
   if (answer.kind === "absent") {
     return `<div data-answer="absent"><p class="eyebrow">Answer rate</p><p class="figure">Absent</p><p class="detail">No prompts closed in this window</p></div>`;
   }
-  return `<div data-answer="measured" data-band="${answer.band}"><p class="eyebrow">Answer rate</p><p class="figure">${answer.answered}/${answer.sent} · ${answer.percent}% · ${bandLabel(answer.band)}</p><p class="detail">Closed delivered prompts. Target ≥ ${HEALTHY_FLOOR_PERCENT}%</p></div>`;
+  const expired = answer.sent - answer.answered - answer.declined;
+  return `<div data-answer="measured" data-band="${answer.band}"><p class="eyebrow">Answer rate</p><p class="figure">${answer.answered}/${answer.sent} · ${answer.percent}% · ${bandLabel(answer.band)}</p><p class="detail">${answer.answered} answered · ${answer.declined} declined · ${expired} expired. Target ≥ ${HEALTHY_FLOOR_PERCENT}%</p></div>`;
 }
 
 function extractCell(extract: ExtractReading): string {
@@ -555,7 +553,7 @@ export function renderHealthStrip(strip: HealthStrip): string {
     ${extractCell(strip.extract)}
   </section>
   <p class="window" data-window>${windowLine}</p>
-  <p class="footnote">Closed delivered prompts are answered or expired. Failed sends are not in the denominator. An open link is not a miss yet.</p>
+  <p class="footnote">Rate is answered / closed delivered prompts. Closed means answered, declined, or expired. Declines are not answers and not expiries. Failed sends are not in the denominator. An open link is not a miss yet.</p>
 </main>
 </body>
 </html>`;

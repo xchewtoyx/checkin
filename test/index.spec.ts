@@ -73,4 +73,26 @@ describe("POST /c/:token — vocabulary validation", () => {
     expect(stored?.feeling).toBe("calm");
     expect(stored?.vocab_era).toBe(WHEEL_ERA);
   });
+
+  it("records a decline without a feeling or a why", async () => {
+    const response = await post({ decline: true });
+
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain("Not now");
+    expect(html).toContain("This check-in is closed.");
+    expect(html).not.toMatch(/why/i);
+    const promptRow = await env.DB.prepare(
+      "SELECT status FROM checkin_prompt WHERE id = ?",
+    )
+      .bind(prompt.id)
+      .first<{ status: string }>();
+    expect(promptRow?.status).toBe("declined");
+    const stored = await env.DB.prepare(
+      "SELECT id FROM checkin_response WHERE prompt_id = ?",
+    )
+      .bind(prompt.id)
+      .first();
+    expect(stored).toBeNull();
+  });
 });

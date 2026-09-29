@@ -41,7 +41,7 @@ The original request arrived solution-first ("cloudflare workflow dumps d1 to r2
   *Fit:* pointing the platform's S3 import at a table prefix loads every row with no custom parsing, and `extraction_date` is usable as a partition column.
 
 - **F3 — Freshness.** Every completed check-in and every prompt state transition is reflected in some export within 24 hours.
-  *Fit:* a response submitted at time T appears in an export whose extraction time is ≤ T + 24 h; same for a prompt reaching `expired`/`failed`/`answered`.
+  *Fit:* a response submitted at time T appears in an export whose extraction time is ≤ T + 24 h; same for a prompt reaching `expired`/`failed`/`answered`/`declined`.
 
 - **F4 — Credential and surplus-field exclusion.** `response_token` and `notification_id` never leave D1.
   *Rationale:* `response_token` is a live credential (N1 of #1) and `notification_id` is a delivery receipt; analytics needs neither, and a field that is never exported cannot leak downstream. This is the only permitted divergence from raw fidelity.

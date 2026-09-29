@@ -4,6 +4,7 @@ import { log } from "./logger";
 import {
   Confidence,
   PromptRow,
+  deleteResponseForPrompt,
   getPromptByToken,
   upsertResponse,
   updatePromptStatus,
@@ -32,11 +33,12 @@ export type RecordResponseResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "expired" | "invalid" };
 
-export async function recordResponse(
+async function resolveLivePrompt(
   db: D1Database,
-  input: RecordResponseInput,
-): Promise<RecordResponseResult> {
-  const prompt = await getPromptByToken(db, input.token);
+  token: string,
+  now: Date,
+): Promise<{ ok: true; prompt: PromptRow } | { ok: false; reason: "not_found" | "expired" }> {
+  const prompt = await getPromptByToken(db, token);
   if (!prompt) {
     log("warn", "response_rejected", { reason: "not_found" });
     return { ok: false, reason: "not_found" };
@@ -47,11 +49,26 @@ export async function recordResponse(
     return { ok: false, reason: "expired" };
   }
 
-  if (prompt.expires_at && prompt.expires_at < input.now.toISOString()) {
-    await updatePromptStatus(db, prompt.id, "expired");
+  if (prompt.expires_at && prompt.expires_at < now.toISOString()) {
+    if (prompt.status === "sent") {
+      await updatePromptStatus(db, prompt.id, "expired");
+    }
     log("warn", "response_rejected", { reason: "expired", prompt_id: prompt.id });
     return { ok: false, reason: "expired" };
   }
+
+  return { ok: true, prompt };
+}
+
+export async function recordResponse(
+  db: D1Database,
+  input: RecordResponseInput,
+): Promise<RecordResponseResult> {
+  const live = await resolveLivePrompt(db, input.token, input.now);
+  if (!live.ok) {
+    return live;
+  }
+  const prompt = live.prompt;
 
   if (input.intensity < 1 || input.intensity > 10) {
     return rejectInvalid(prompt.id);
@@ -91,6 +108,22 @@ export async function recordResponse(
   return { ok: true };
 }
 
+export async function recordDecline(
+  db: D1Database,
+  input: { token: string; now: Date },
+): Promise<RecordResponseResult> {
+  const live = await resolveLivePrompt(db, input.token, input.now);
+  if (!live.ok) {
+    return live;
+  }
+  const prompt = live.prompt;
+
+  await deleteResponseForPrompt(db, prompt.id);
+  await updatePromptStatus(db, prompt.id, "declined");
+  log("info", "prompt_declined", { prompt_id: prompt.id });
+  return { ok: true };
+}
+
 export function isPromptUsable(prompt: PromptRow, now: Date): boolean {
   if (prompt.status === "expired") {
     return false;
@@ -98,7 +131,11 @@ export function isPromptUsable(prompt: PromptRow, now: Date): boolean {
   if (prompt.expires_at && prompt.expires_at < now.toISOString()) {
     return false;
   }
-  return prompt.status === "sent" || prompt.status === "answered";
+  return (
+    prompt.status === "sent" ||
+    prompt.status === "answered" ||
+    prompt.status === "declined"
+  );
 }
 
 export function expiresAtFrom(sentAt: Date): string {

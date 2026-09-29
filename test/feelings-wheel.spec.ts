@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import vocabularyDoc from "../docs/feelings-vocabulary.md?raw";
-import { renderCheckinPage } from "../src/checkin-page";
+import { renderCheckinPage, renderDeclinedPage } from "../src/checkin-page";
 import { LABEL_BUDGET, WHEEL, WHEEL_ERA, WheelSector } from "../src/feelings-wheel";
 import { PromptRow } from "../src/store";
 
@@ -179,6 +179,19 @@ describe("renderCheckinPage — progressive-disclosure ladder (#32)", () => {
     expect(html).toMatch(/\.aux input \{[^}]*min-height: 44px;/s);
     expect(html).toMatch(/\.confidence-row button \{[^}]*min-height: 44px;/s);
     expect(html).toMatch(/\.intensity button \{[^}]*min-height: 44px;/s);
+    expect(html).toMatch(/\.decline \{[^}]*min-height: 44px;/s);
+  });
+
+  it("offers one-tap decline with no follow-up question", () => {
+    const html = renderCheckinPage(prompt, now);
+
+    expect(html).toContain('id="decline"');
+    expect(html).toContain(">Not now<");
+    expect(html).toContain('JSON.stringify({ decline: true })');
+    expect(html).not.toMatch(/why did you/i);
+    expect(html).not.toMatch(/reason for skipping/i);
+    expect(renderDeclinedPage()).toContain("This check-in is closed.");
+    expect(renderDeclinedPage()).not.toMatch(/why/i);
   });
 
   it("renders the expired page for an unusable prompt", () => {

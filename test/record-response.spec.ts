@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WHEEL_ERA } from "../src/feelings-wheel";
-import { recordResponse } from "../src/record-response";
+import { recordDecline, recordResponse } from "../src/record-response";
 import { insertPrompt, PromptRow } from "../src/store";
 
 function makePrompt(id: string, token: string): PromptRow {
@@ -349,5 +349,119 @@ describe("recordResponse — vocabulary allowlist", () => {
       expect.objectContaining({ event: "response_rejected", reason: "invalid" }),
     ]);
     expect(JSON.stringify(rejected[0])).not.toContain(junkFeeling);
+  });
+});
+
+describe("recordDecline", () => {
+  beforeEach(async () => {
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+  });
+
+  it("marks the prompt declined without writing a response row", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-skip-1", "token-skip-1"));
+
+    const result = await recordDecline(env.DB, {
+      token: "token-skip-1",
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result).toEqual({ ok: true });
+    const prompt = await env.DB.prepare("SELECT status FROM checkin_prompt WHERE id = ?")
+      .bind("prompt-skip-1")
+      .first<{ status: string }>();
+    expect(prompt?.status).toBe("declined");
+    expect(await fetchResponseRow("response-prompt-skip-1")).toBeNull();
+  });
+
+  it("removes a prior answer so a decline is not also a measurement", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-skip-2", "token-skip-2"));
+    const now = new Date("2026-08-15T09:10:00.000Z");
+    await recordResponse(env.DB, {
+      token: "token-skip-2",
+      feeling: "calm",
+      intensity: 4,
+      now,
+    });
+
+    const result = await recordDecline(env.DB, { token: "token-skip-2", now });
+
+    expect(result).toEqual({ ok: true });
+    const prompt = await env.DB.prepare("SELECT status FROM checkin_prompt WHERE id = ?")
+      .bind("prompt-skip-2")
+      .first<{ status: string }>();
+    expect(prompt?.status).toBe("declined");
+    expect(await fetchResponseRow("response-prompt-skip-2")).toBeNull();
+  });
+
+  it("lets an answer after a decline become the measurement", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-skip-3", "token-skip-3"));
+    const now = new Date("2026-08-15T09:10:00.000Z");
+    await recordDecline(env.DB, { token: "token-skip-3", now });
+
+    const result = await recordResponse(env.DB, {
+      token: "token-skip-3",
+      feeling: "hopeful",
+      intensity: 6,
+      now,
+    });
+
+    expect(result).toEqual({ ok: true });
+    const prompt = await env.DB.prepare("SELECT status FROM checkin_prompt WHERE id = ?")
+      .bind("prompt-skip-3")
+      .first<{ status: string }>();
+    expect(prompt?.status).toBe("answered");
+    const row = await fetchResponseRow("response-prompt-skip-3");
+    expect(row?.feeling).toBe("hopeful");
+    expect(row?.intensity).toBe(6);
+  });
+
+  it("rejects a decline after expiry without asking why", async () => {
+    await insertPrompt(env.DB, {
+      ...makePrompt("prompt-skip-4", "token-skip-4"),
+      status: "expired",
+    });
+
+    const result = await recordDecline(env.DB, {
+      token: "token-skip-4",
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    expect(result).toEqual({ ok: false, reason: "expired" });
+    const prompt = await env.DB.prepare("SELECT status FROM checkin_prompt WHERE id = ?")
+      .bind("prompt-skip-4")
+      .first<{ status: string }>();
+    expect(prompt?.status).toBe("expired");
+  });
+
+  it("is idempotent on a second decline", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-skip-5", "token-skip-5"));
+    const now = new Date("2026-08-15T09:10:00.000Z");
+    await recordDecline(env.DB, { token: "token-skip-5", now });
+    const again = await recordDecline(env.DB, { token: "token-skip-5", now });
+    expect(again).toEqual({ ok: true });
+    const prompt = await env.DB.prepare("SELECT status FROM checkin_prompt WHERE id = ?")
+      .bind("prompt-skip-5")
+      .first<{ status: string }>();
+    expect(prompt?.status).toBe("declined");
+  });
+
+  it("leaves a declined prompt declined after the link expires", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-skip-6", "token-skip-6"));
+    await recordDecline(env.DB, {
+      token: "token-skip-6",
+      now: new Date("2026-08-15T09:10:00.000Z"),
+    });
+
+    const late = await recordDecline(env.DB, {
+      token: "token-skip-6",
+      now: new Date("2026-08-16T02:00:00.000Z"),
+    });
+
+    expect(late).toEqual({ ok: false, reason: "expired" });
+    const prompt = await env.DB.prepare("SELECT status FROM checkin_prompt WHERE id = ?")
+      .bind("prompt-skip-6")
+      .first<{ status: string }>();
+    expect(prompt?.status).toBe("declined");
   });
 });

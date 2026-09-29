@@ -2,8 +2,26 @@ export type PromptStatus =
   | "scheduled"
   | "sent"
   | "answered"
+  | "declined"
   | "expired"
   | "failed";
+
+/** Closed delivered outcomes. Overdue `sent` counts as expired. */
+export type ClosedPromptOutcome = "answered" | "declined" | "expired";
+
+export function closedPromptOutcome(
+  status: PromptStatus,
+  expiresAt: string | null,
+  nowIso: string,
+): ClosedPromptOutcome | null {
+  if (status === "answered" || status === "declined" || status === "expired") {
+    return status;
+  }
+  if (status === "sent" && expiresAt !== null && expiresAt < nowIso) {
+    return "expired";
+  }
+  return null;
+}
 
 export interface PromptRow {
   id: string;
@@ -144,6 +162,16 @@ export async function upsertResponse(
       row.observed_at,
       row.submitted_at,
     )
+    .run();
+}
+
+export async function deleteResponseForPrompt(
+  db: D1Database,
+  promptId: string,
+): Promise<void> {
+  await db
+    .prepare("DELETE FROM checkin_response WHERE prompt_id = ?")
+    .bind(promptId)
     .run();
 }
 
