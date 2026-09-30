@@ -57,6 +57,7 @@ describe("evaluateAnswerRate", () => {
     expect(verdict).toEqual({
       status: "ok",
       answered: 35,
+      declined: 0,
       sent: 41,
       rate: 35 / 41,
     });
@@ -79,6 +80,7 @@ describe("evaluateAnswerRate", () => {
     expect(evaluable).toEqual({
       status: "ok",
       answered: 21,
+      declined: 0,
       sent: 28,
       rate: 0.75,
     });
@@ -91,6 +93,7 @@ describe("evaluateAnswerRate", () => {
       status: "unevaluable",
       reason: "too_few_prompts",
       answered: 0,
+      declined: 0,
       sent: tooFew,
       rate: null,
     });
@@ -133,6 +136,21 @@ describe("evaluateAnswerRate", () => {
     expect(verdict.sent).toBe(14);
     expect(verdict.answered).toBe(13);
   });
+
+  it("counts declined in the denominator without treating it as an answer or an expiry", () => {
+    const prompts = [
+      ...closed(12, 1),
+      row("declined"),
+    ];
+    const verdict = evaluateAnswerRate(prompts, now);
+    expect(verdict).toEqual({
+      status: "ok",
+      answered: 12,
+      declined: 1,
+      sent: 14,
+      rate: 12 / 14,
+    });
+  });
 });
 
 describe("noticeForTransition", () => {
@@ -166,15 +184,15 @@ describe("rollingFortnight", () => {
 
 describe("formatAlertMessage", () => {
   it("names the rate with its denominator", () => {
-    const verdict = { status: "breach" as const, answered: 30, sent: 41, rate: 30 / 41 };
+    const verdict = { status: "breach" as const, answered: 30, declined: 0, sent: 41, rate: 30 / 41 };
     expect(formatAlertMessage("breach", verdict, { from: "2026-09-15", to: "2026-09-28" })).toBe(
-      "Answer rate 30/41 (73.2%) over 2026-09-15 → 2026-09-28 is below the G1 75.0% threshold.",
+      "Answer rate 30/41 (73.2%) over 2026-09-15 → 2026-09-28 is below the G1 75.0% threshold. 30 answered · 0 declined · 11 expired.",
     );
     expect(formatAlertMessage("recovery", { ...verdict, status: "ok", answered: 35, rate: 35 / 41 }, {
       from: "2026-09-15",
       to: "2026-09-28",
     })).toBe(
-      "Answer rate 35/41 (85.4%) over 2026-09-15 → 2026-09-28 is back at or above the G1 75.0% threshold.",
+      "Answer rate 35/41 (85.4%) over 2026-09-15 → 2026-09-28 is back at or above the G1 75.0% threshold. 35 answered · 0 declined · 6 expired.",
     );
   });
 });

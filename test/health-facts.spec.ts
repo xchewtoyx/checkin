@@ -201,6 +201,33 @@ describe("loadHealthFacts", () => {
     });
   });
 
+  it("loads declined prompts as delivered, distinct from expired", async () => {
+    await insertPrompt({
+      id: "prompt-2026-09-20-w1",
+      status: "declined",
+      sentAt: "2026-09-20T08:01:00.000Z",
+      expiresAt: "2026-09-20T20:01:00.000Z",
+      token: "token-declined",
+    });
+
+    const loaded = await loadHealthFacts({ DB: env.DB }, NOW);
+    expect(loaded.delivered).toEqual([
+      {
+        dateKey: "2026-09-20",
+        status: "declined",
+        expiresAt: "2026-09-20T20:01:00.000Z",
+      },
+    ]);
+    expect(assessHealth(loaded).answer).toEqual({
+      kind: "measured",
+      answered: 0,
+      declined: 1,
+      sent: 1,
+      percent: 0,
+      band: "failure",
+    });
+  });
+
   it("keeps the last refresh when the newest manifest is beyond the probe window", async () => {
     const bucket = new MemoryR2Bucket();
     const oldSlot = buildExportSlot(new Date("2026-09-18T00:00:00.000Z"), 3, 0);

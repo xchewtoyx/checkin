@@ -207,6 +207,19 @@ const STYLE = `
     min-height: 44px;
     cursor: pointer;
   }
+  .decline {
+    appearance: none;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    padding: 0.55rem 0.2rem;
+    min-height: 44px;
+    cursor: pointer;
+    align-self: flex-start;
+  }
   .meta-text { color: var(--muted); margin: 0; }
   #status { color: var(--muted); margin: 0; min-height: 1.2em; }
   :is(button, input):focus-visible {
@@ -301,10 +314,16 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
       </div>
       <div class="intensity" id="intensity" role="group" aria-label="Intensity from 1 to 10">${intensities}</div>
     </section>
+    <button type="button" class="decline" id="decline">Not now</button>
     <section class="recorded" id="recorded">
       <span class="word" id="recorded-word"></span>
       <p class="meta" id="recorded-meta"></p>
       <button class="change" id="recorded-change" type="button">Change answer</button>
+    </section>
+    <section class="recorded" id="skipped">
+      <span class="word">Not now</span>
+      <p class="meta">This check-in is closed.</p>
+      <button class="change" id="skipped-change" type="button">Change</button>
     </section>
     <p id="status" role="status"></p>
   </main>
@@ -324,7 +343,7 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
       var statusEl = document.getElementById("status");
       var confidenceToggle = document.getElementById("confidence-toggle");
       var intensityButtons = intensityWrap.querySelectorAll("button");
-      var formIds = ["row-0", "row-1", "row-2", "form-note", "form-confidence", "form-intensity"];
+      var formIds = ["row-0", "row-1", "row-2", "form-note", "form-confidence", "form-intensity", "decline"];
 
       function coreSector(word) {
         for (var i = 0; i < WHEEL.length; i++) {
@@ -459,10 +478,19 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
       });
 
       function setRecorded(recorded) {
+        setClosed("recorded", recorded);
+      }
+
+      function setSkipped(skipped) {
+        setClosed("skipped", skipped);
+      }
+
+      function setClosed(which, open) {
         for (var i = 0; i < formIds.length; i++) {
-          document.getElementById(formIds[i]).classList.toggle("hidden", recorded);
+          document.getElementById(formIds[i]).classList.toggle("hidden", open);
         }
-        document.getElementById("recorded").classList.toggle("open", recorded);
+        document.getElementById("recorded").classList.toggle("open", which === "recorded" && open);
+        document.getElementById("skipped").classList.toggle("open", which === "skipped" && open);
       }
 
       function submit(intensity, feeling, submittedConfidence, hue) {
@@ -496,11 +524,49 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
         });
       }
 
+      function submitDecline() {
+        if (saving) return;
+        saving = true;
+        statusEl.textContent = "Saving…";
+        fetch(window.location.pathname, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ decline: true }),
+        }).then(function (response) {
+          saving = false;
+          if (!response.ok) {
+            statusEl.textContent = "Could not save — please try again.";
+            return;
+          }
+          statusEl.textContent = "";
+          setSkipped(true);
+        }).catch(function () {
+          saving = false;
+          statusEl.textContent = "Could not save — please try again.";
+        });
+      }
+
+      document.getElementById("decline").addEventListener("click", submitDecline);
+
       document.getElementById("recorded-change").addEventListener("click", function () {
         setRecorded(false);
       });
+
+      document.getElementById("skipped-change").addEventListener("click", function () {
+        setSkipped(false);
+      });
     })();
   </script>`);
+}
+
+export function renderDeclinedPage(): string {
+  return pageShell(`  <main>
+    <header>
+      <p class="eyebrow">check-in</p>
+      <h1>Not now</h1>
+    </header>
+    <p class="meta-text">This check-in is closed.</p>
+  </main>`);
 }
 
 export function renderRecordedPage(): string {

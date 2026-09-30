@@ -10,6 +10,7 @@ import { Notifier } from "./notifier";
 import {
   AlertNotifiedStatus,
   PromptStatusRow,
+  closedPromptOutcome,
   getAlertState,
   listPromptsInIdRange,
   upsertAlertState,
@@ -26,12 +27,14 @@ export type AnswerRateVerdict =
       status: "unevaluable";
       reason: "too_few_prompts";
       answered: number;
+      declined: number;
       sent: number;
       rate: null;
     }
   | {
       status: "ok" | "breach";
       answered: number;
+      declined: number;
       sent: number;
       rate: number;
     };
@@ -56,10 +59,10 @@ export function rollingFortnight(dateKey: string): { from: string; to: string } 
 }
 
 /**
- * G1 metric: answered / sent, expired (and overdue sent) in the
- * denominator, `failed` excluded. Still-open `sent` and `scheduled` are
- * not yet a hit or a miss, so they stay out — a mid-window cron tick
- * must not flap the standing alert.
+ * G1 metric: answered / closed delivered prompts. Declined is a third
+ * category in the denominator, not an answer and not an expiry. Overdue
+ * `sent` counts as expired. `failed` is excluded. Still-open `sent` and
+ * `scheduled` are not yet a hit, a skip, or a miss.
  */
 export function evaluateAnswerRate(
   prompts: PromptStatusRow[],
@@ -67,39 +70,41 @@ export function evaluateAnswerRate(
 ): AnswerRateVerdict {
   const nowIso = now.toISOString();
   let answered = 0;
+  let declined = 0;
   let sent = 0;
 
   for (const prompt of prompts) {
-    if (!countsTowardSent(prompt, nowIso)) {
+    const outcome = closedPromptOutcome(prompt.status, prompt.expires_at, nowIso);
+    if (outcome === null) {
       continue;
     }
     sent += 1;
-    if (prompt.status === "answered") {
+    if (outcome === "answered") {
       answered += 1;
+    } else if (outcome === "declined") {
+      declined += 1;
     }
   }
 
   if (sent < ANSWER_RATE_MIN_SENT_PROMPTS) {
-    return { status: "unevaluable", reason: "too_few_prompts", answered, sent, rate: null };
+    return {
+      status: "unevaluable",
+      reason: "too_few_prompts",
+      answered,
+      declined,
+      sent,
+      rate: null,
+    };
   }
 
   const rate = answered / sent;
   return {
     status: rate >= ANSWER_RATE_THRESHOLD ? "ok" : "breach",
     answered,
+    declined,
     sent,
     rate,
   };
-}
-
-function countsTowardSent(prompt: PromptStatusRow, nowIso: string): boolean {
-  if (prompt.status === "failed" || prompt.status === "scheduled") {
-    return false;
-  }
-  if (prompt.status === "sent") {
-    return prompt.expires_at !== null && prompt.expires_at < nowIso;
-  }
-  return prompt.status === "answered" || prompt.status === "expired";
 }
 
 export function noticeForTransition(
@@ -128,12 +133,13 @@ export function formatAlertMessage(
   window: { from: string; to: string },
 ): string {
   const figure = `${verdict.answered}/${verdict.sent} (${formatRatePercent(verdict.rate)})`;
+  const categories = `${verdict.answered} answered · ${verdict.declined} declined · ${verdict.sent - verdict.answered - verdict.declined} expired`;
   const span = `${window.from} → ${window.to}`;
   const threshold = formatRatePercent(ANSWER_RATE_THRESHOLD);
   if (notice === "breach") {
-    return `Answer rate ${figure} over ${span} is below the G1 ${threshold} threshold.`;
+    return `Answer rate ${figure} over ${span} is below the G1 ${threshold} threshold. ${categories}.`;
   }
-  return `Answer rate ${figure} over ${span} is back at or above the G1 ${threshold} threshold.`;
+  return `Answer rate ${figure} over ${span} is back at or above the G1 ${threshold} threshold. ${categories}.`;
 }
 
 export async function runAnswerRateAlert(
@@ -156,6 +162,7 @@ export async function runAnswerRateAlert(
   log("info", "answer_rate_evaluated", {
     status: verdict.status,
     answered: verdict.answered,
+    declined: verdict.declined,
     sent: verdict.sent,
     rate: verdict.rate ?? -1,
     window_from: window.from,

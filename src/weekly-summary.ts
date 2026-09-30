@@ -30,6 +30,7 @@ export interface Answer {
 export interface WeekTally {
   sent: number;
   answered: number;
+  declined: number;
   scored: number;
   meanSigned: number | null;
 }
@@ -116,13 +117,18 @@ export function summaryWeekBounds(now: Date): {
   };
 }
 
-export function tallyWeek(sent: number, answers: Answer[]): WeekTally {
+export function tallyWeek(
+  sent: number,
+  answers: Answer[],
+  declined = 0,
+): WeekTally {
   const scores = answers
     .map((answer) => signedMood(answer.feeling, answer.intensity))
     .filter((score): score is number => score !== null);
   return {
     sent,
     answered: answers.length,
+    declined,
     scored: scores.length,
     meanSigned:
       scores.length === 0 ? null : scores.reduce((sum, score) => sum + score, 0) / scores.length,
@@ -147,22 +153,23 @@ function hasEnough(tally: WeekTally): boolean {
 
 export function formatWeeklySummaryMessage(current: WeekTally, prior: WeekTally): string {
   const rate = `${current.answered}/${current.sent}`;
+  const categories = `${rate} answered · ${current.declined} declined`;
   if (!hasEnough(current) || current.meanSigned === null) {
-    return `Too little data to summarise (${rate}).`;
+    return `Too little data to summarise (${categories}).`;
   }
 
   const mood = formatSigned(current.meanSigned);
   if (!hasEnough(prior) || prior.meanSigned === null) {
-    return `${rate} answered. ${mood}. No prior week to compare.`;
+    return `${categories}. ${mood}. No prior week to compare.`;
   }
 
   const a = round1(current.meanSigned);
   const b = round1(prior.meanSigned);
   if (a === b) {
-    return `${rate} answered. ${mood}, same as last week.`;
+    return `${categories}. ${mood}, same as last week.`;
   }
   const direction = a > b ? "up" : "down";
-  return `${rate} answered. ${mood}, ${direction} from ${formatSigned(prior.meanSigned)}.`;
+  return `${categories}. ${mood}, ${direction} from ${formatSigned(prior.meanSigned)}.`;
 }
 
 async function tallyRange(db: D1Database, from: Date, to: Date): Promise<WeekTally> {
@@ -170,7 +177,8 @@ async function tallyRange(db: D1Database, from: Date, to: Date): Promise<WeekTal
   const toIso = to.toISOString();
   const prompts = await listSentPromptsBetween(db, fromIso, toIso);
   const responses = await listResponsesForSentPromptsBetween(db, fromIso, toIso);
-  return tallyWeek(prompts.length, responses);
+  const declined = prompts.filter((prompt) => prompt.status === "declined").length;
+  return tallyWeek(prompts.length, responses, declined);
 }
 
 export async function runWeeklySummary(

@@ -1,5 +1,5 @@
 import { runAnswerRateAlert } from "./answer-rate-alert";
-import { renderCheckinPage, renderRecordedPage } from "./checkin-page";
+import { renderCheckinPage, renderDeclinedPage, renderRecordedPage } from "./checkin-page";
 import { runAnalyticsExtract } from "./analytics-extract";
 import {
   authorizeExport,
@@ -12,7 +12,7 @@ import { loadHealthFacts } from "./health-facts";
 import { assessHealth, renderHealthStrip } from "./health-strip";
 import { log } from "./logger";
 import { NoopNotifier, Notifier, PushoverNotifier } from "./notifier";
-import { recordResponse } from "./record-response";
+import { recordDecline, recordResponse } from "./record-response";
 import { runScheduler, SchedulerEnv } from "./scheduler";
 import { getPromptByToken, listResponses } from "./store";
 import { runWeeklySummary } from "./weekly-summary";
@@ -76,12 +76,24 @@ async function handleCheckinToken(
   }
 
   const payload = (await request.json()) as {
+    decline?: boolean;
     feeling?: string;
     intensity?: number;
     note?: string;
     confidence?: string | null;
     vocab_era?: string | null;
   };
+
+  if (payload.decline === true) {
+    const declined = await recordDecline(env.DB, { token, now });
+    if (!declined.ok) {
+      const status = declined.reason === "not_found" ? 404 : 400;
+      return new Response("Unavailable", { status });
+    }
+    return new Response(renderDeclinedPage(), {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
 
   if (!payload.feeling || payload.intensity === undefined) {
     return new Response("Invalid request", { status: 400 });

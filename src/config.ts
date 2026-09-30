@@ -16,7 +16,7 @@ export const ANSWER_RATE_THRESHOLD = 0.75;
 export const ANSWER_RATE_WINDOW_DAYS = 14;
 
 /**
- * Closed sent prompts (answered + expired + overdue sent) required
+ * Closed sent prompts (answered + declined + expired + overdue sent) required
  * before a fortnight rate is evaluable. Fewer than one closed prompt
  * per day of the window is "too few" — a handful of slots is not a
  * fortnight's evidence, and must not count as a breach.

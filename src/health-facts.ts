@@ -17,7 +17,7 @@ export interface HealthFactsEnv {
   EXTRACT_BUCKET?: R2Bucket;
 }
 
-const DELIVERED: ReadonlySet<string> = new Set(["sent", "answered", "expired"]);
+const DELIVERED: ReadonlySet<string> = new Set(["sent", "answered", "declined", "expired"]);
 
 interface PromptScanRow {
   id: string;
@@ -35,7 +35,7 @@ async function loadDelivered(db: D1Database): Promise<DeliveredPrompt[]> {
     .prepare(
       `SELECT id, status, sent_at, expires_at
        FROM checkin_prompt
-       WHERE status IN ('sent', 'answered', 'expired')
+       WHERE status IN ('sent', 'answered', 'declined', 'expired')
          AND sent_at IS NOT NULL`,
     )
     .all<PromptScanRow>();

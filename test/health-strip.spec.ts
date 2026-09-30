@@ -119,6 +119,7 @@ describe("assessHealth answer rate", () => {
     expect(strip.answer).toEqual({
       kind: "measured",
       answered: 1,
+      declined: 0,
       sent: 3,
       percent: 33,
       band: "failure",
@@ -126,6 +127,7 @@ describe("assessHealth answer rate", () => {
     expect(strip.glance).toBe("attention");
     const html = renderHealthStrip(strip);
     expect(html).toContain("1/3 · 33% · Friction failure");
+    expect(html).toContain("1 answered · 0 declined · 2 expired");
     expect(html).toContain("14 London days · 2026-09-15 – 2026-09-28");
     expect(html).not.toMatch(/>33%</);
   });
@@ -163,6 +165,7 @@ describe("assessHealth answer rate", () => {
     expect(strip.answer).toEqual({
       kind: "measured",
       answered: 0,
+      declined: 0,
       sent: 5,
       percent: 0,
       band: "failure",
@@ -224,6 +227,31 @@ describe("assessHealth answer rate", () => {
       percent: 0,
       band: "failure",
     });
+  });
+
+  it("counts a decline in the denominator as its own category, not an answer or an expiry", () => {
+    const strip = assessHealth(
+      facts({
+        delivered: [
+          deliveredPrompt("2026-09-20", "answered"),
+          deliveredPrompt("2026-09-21", "declined"),
+          deliveredPrompt("2026-09-22", "expired"),
+        ],
+      }),
+    );
+    expect(strip.answer).toEqual({
+      kind: "measured",
+      answered: 1,
+      declined: 1,
+      sent: 3,
+      percent: 33,
+      band: "failure",
+    });
+    const html = renderHealthStrip(strip);
+    expect(html).toContain("1/3 · 33% · Friction failure");
+    expect(html).toContain("1 answered · 1 declined · 1 expired");
+    expect(html).toContain("Rate is answered / closed delivered prompts");
+    expect(html).toContain("Declines are not answers and not expiries");
   });
 });
 
