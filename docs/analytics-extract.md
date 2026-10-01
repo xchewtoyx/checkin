@@ -134,6 +134,15 @@ per the rule above:
   `vocab_era_discarded`), never stored. The D1/export key is `vocab_era`
   (additive column from 0003); it is not renamed.
 
+Manual catch-up rows (CCP-679, `GET/POST /checkin`) use the existing
+nullable `prompt_id` and the `observed_at` / `submitted_at` split: they
+arrive with `prompt_id` JSON `null` and an `id` prefixed `manual-`.
+Prompted rows keep a non-null `prompt_id` and `id` `response-{prompt_id}`.
+`submitted_at` is the real write time; `observed_at` may be earlier,
+bounded to the past 7 London calendar days at the write path. Downstream
+can include or exclude them with `prompt_id IS NULL` (or the `manual-`
+id prefix) without a new column.
+
 ## 5. Design decisions
 
 Triaged by reversibility, as in #1.

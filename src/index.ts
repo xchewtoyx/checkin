@@ -1,5 +1,10 @@
 import { runAnswerRateAlert } from "./answer-rate-alert";
-import { renderCheckinPage, renderDeclinedPage, renderRecordedPage } from "./checkin-page";
+import {
+  renderCheckinPage,
+  renderDeclinedPage,
+  renderManualCheckinPage,
+  renderRecordedPage,
+} from "./checkin-page";
 import { runAnalyticsExtract } from "./analytics-extract";
 import {
   authorizeExport,
@@ -12,7 +17,7 @@ import { loadHealthFacts } from "./health-facts";
 import { assessHealth, renderHealthStrip } from "./health-strip";
 import { log } from "./logger";
 import { NoopNotifier, Notifier, PushoverNotifier } from "./notifier";
-import { recordDecline, recordResponse } from "./record-response";
+import { recordDecline, recordManualResponse, recordResponse } from "./record-response";
 import { runScheduler, SchedulerEnv } from "./scheduler";
 import { getPromptByToken, listResponses } from "./store";
 import { runWeeklySummary } from "./weekly-summary";
@@ -121,15 +126,93 @@ async function handleCheckinToken(
 
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
+function redirectToHttpsIfNeeded(request: Request): Response | null {
+  const url = new URL(request.url);
+  if (url.protocol === "http:" && !LOCAL_HOSTNAMES.has(url.hostname)) {
+    url.protocol = "https:";
+    return Response.redirect(url.toString(), 308);
+  }
+  return null;
+}
+
+const AUTHENTICATED_HTML_HEADERS = {
+  "content-type": "text/html; charset=utf-8",
+  "cache-control": "private, no-store",
+  "x-content-type-options": "nosniff",
+};
+
+async function handleManualCheckin(request: Request, env: Env): Promise<Response> {
+  const redirected = redirectToHttpsIfNeeded(request);
+  if (redirected) {
+    return redirected;
+  }
+
+  if (!authorizeReport(request, env.EXPORT_BEARER_TOKEN)) {
+    return new Response("Unauthorized", {
+      status: 401,
+      headers: { "www-authenticate": REPORT_AUTH_CHALLENGE },
+    });
+  }
+
+  const now = new Date();
+
+  if (request.method === "GET") {
+    return new Response(renderManualCheckinPage(now), {
+      headers: AUTHENTICATED_HTML_HEADERS,
+    });
+  }
+
+  if (request.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  let payload: {
+    feeling?: string;
+    intensity?: number;
+    note?: string;
+    confidence?: string | null;
+    vocab_era?: string | null;
+    observed_at?: string;
+  };
+  try {
+    payload = (await request.json()) as typeof payload;
+  } catch {
+    return new Response("Invalid request", { status: 400 });
+  }
+
+  if (!payload.feeling || payload.intensity === undefined || !payload.observed_at) {
+    return new Response("Invalid request", { status: 400 });
+  }
+
+  const result = await recordManualResponse(env.DB, {
+    feeling: payload.feeling,
+    intensity: Number(payload.intensity),
+    note: payload.note,
+    confidence: payload.confidence,
+    vocabEra: payload.vocab_era,
+    observedAt: String(payload.observed_at),
+    now,
+  });
+
+  if (!result.ok) {
+    const message =
+      result.reason === "out_of_range" ? "observed_at out of range" : "Invalid request";
+    return new Response(message, { status: 400 });
+  }
+
+  return new Response(renderRecordedPage(), {
+    headers: { "content-type": "text/html; charset=utf-8" },
+  });
+}
+
 async function handleReport(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const url = new URL(request.url);
-  if (url.protocol === "http:" && !LOCAL_HOSTNAMES.has(url.hostname)) {
-    url.protocol = "https:";
-    return Response.redirect(url.toString(), 308);
+  const redirected = redirectToHttpsIfNeeded(request);
+  if (redirected) {
+    return redirected;
   }
 
   if (!authorizeReport(request, env.EXPORT_BEARER_TOKEN)) {
@@ -168,6 +251,10 @@ export default {
 
     if (url.pathname === "/report") {
       return handleReport(request, env);
+    }
+
+    if (url.pathname === "/checkin") {
+      return handleManualCheckin(request, env);
     }
 
     const tokenMatch = url.pathname.match(/^\/c\/([a-f0-9]+)$/);

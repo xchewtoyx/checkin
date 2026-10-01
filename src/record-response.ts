@@ -1,5 +1,6 @@
-import { TOKEN_TTL_HOURS } from "./config";
+import { MANUAL_BACKDATE_DAYS, TOKEN_TTL_HOURS } from "./config";
 import { WHEEL_ERA } from "./feelings-wheel";
+import { getLondonParts, londonInstant, shiftDateKey } from "./london-time";
 import { log } from "./logger";
 import {
   Confidence,
@@ -32,6 +33,24 @@ export interface RecordResponseInput {
 export type RecordResponseResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "expired" | "invalid" };
+
+export interface RecordManualResponseInput {
+  feeling: string;
+  intensity: number;
+  note?: string;
+  confidence?: string | null;
+  vocabEra?: string | null;
+  observedAt: string;
+  now: Date;
+  id?: string;
+}
+
+export type RecordManualResponseResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "invalid" | "out_of_range" };
+
+const NAIVE_OBSERVED_AT =
+  /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?$/;
 
 async function resolveLivePrompt(
   db: D1Database,
@@ -106,6 +125,102 @@ export async function recordResponse(
 
   log("info", "response_accepted", { prompt_id: prompt.id });
   return { ok: true };
+}
+
+export async function recordManualResponse(
+  db: D1Database,
+  input: RecordManualResponseInput,
+): Promise<RecordManualResponseResult> {
+  if (input.intensity < 1 || input.intensity > 10) {
+    return rejectManualInvalid();
+  }
+
+  if (!isAllowedFeeling(input.feeling)) {
+    return rejectManualInvalid();
+  }
+
+  if (
+    input.confidence != null &&
+    !CONFIDENCE_VALUES.includes(input.confidence as Confidence)
+  ) {
+    return rejectManualInvalid();
+  }
+
+  const observedAt = parseObservedAt(input.observedAt, input.now);
+  if (!observedAt) {
+    return rejectManualInvalid();
+  }
+
+  if (!isObservedAtInManualWindow(observedAt, input.now)) {
+    log("warn", "response_rejected", { reason: "out_of_range" });
+    return { ok: false, reason: "out_of_range" };
+  }
+
+  const vocabEra = resolveVocabEra(input.vocabEra);
+  if (input.vocabEra != null && vocabEra === null) {
+    log("warn", "vocab_era_discarded", { source: "manual" });
+  }
+
+  const id = input.id ?? `manual-${crypto.randomUUID()}`;
+  const submittedAt = input.now.toISOString();
+  await upsertResponse(db, {
+    id,
+    prompt_id: null,
+    feeling: input.feeling,
+    intensity: input.intensity,
+    note: input.note?.trim() || null,
+    confidence: (input.confidence as Confidence) ?? null,
+    vocab_era: vocabEra,
+    observed_at: observedAt.toISOString(),
+    submitted_at: submittedAt,
+  });
+
+  log("info", "manual_response_accepted", { response_id: id });
+  return { ok: true, id };
+}
+
+/** Earliest allowed `observed_at`: 00:00 Europe/London, `days` calendar days before today. */
+export function earliestManualObservedAt(
+  now: Date,
+  days: number = MANUAL_BACKDATE_DAYS,
+): Date {
+  const today = getLondonParts(now).dateKey;
+  return londonInstant(shiftDateKey(today, -days), 0, now);
+}
+
+export function parseObservedAt(raw: string, now: Date): Date | null {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const naive = NAIVE_OBSERVED_AT.exec(trimmed);
+  if (naive) {
+    const hour = Number(naive[2]);
+    const minute = Number(naive[3]);
+    if (hour > 23 || minute > 59) {
+      return null;
+    }
+    return londonInstant(naive[1], hour * 60 + minute, now);
+  }
+
+  const ms = Date.parse(trimmed);
+  if (Number.isNaN(ms)) {
+    return null;
+  }
+  return new Date(ms);
+}
+
+export function isObservedAtInManualWindow(observedAt: Date, now: Date): boolean {
+  if (observedAt.getTime() > now.getTime()) {
+    return false;
+  }
+  return observedAt.getTime() >= earliestManualObservedAt(now).getTime();
+}
+
+function rejectManualInvalid(): RecordManualResponseResult {
+  log("warn", "response_rejected", { reason: "invalid", source: "manual" });
+  return { ok: false, reason: "invalid" };
 }
 
 export async function recordDecline(

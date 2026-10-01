@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WHEEL_ERA } from "../src/feelings-wheel";
-import { recordDecline, recordResponse } from "../src/record-response";
+import { recordDecline, recordManualResponse, recordResponse } from "../src/record-response";
 import { insertPrompt, PromptRow } from "../src/store";
 
 function makePrompt(id: string, token: string): PromptRow {
@@ -463,5 +463,156 @@ describe("recordDecline", () => {
       .bind("prompt-skip-6")
       .first<{ status: string }>();
     expect(prompt?.status).toBe("declined");
+  });
+});
+
+describe("recordManualResponse", () => {
+  beforeEach(async () => {
+    await env.DB.prepare("DELETE FROM checkin_response").run();
+    await env.DB.prepare("DELETE FROM checkin_prompt").run();
+  });
+
+  const now = new Date("2026-08-20T12:00:00.000Z");
+
+  async function fetchManualRow(id: string) {
+    return env.DB.prepare(
+      `SELECT id, prompt_id, feeling, intensity, note, observed_at, submitted_at
+       FROM checkin_response WHERE id = ?`,
+    )
+      .bind(id)
+      .first<{
+        id: string;
+        prompt_id: string | null;
+        feeling: string;
+        intensity: number;
+        note: string | null;
+        observed_at: string;
+        submitted_at: string;
+      }>();
+  }
+
+  it("stores a backdated row with null prompt_id and a live submitted_at", async () => {
+    const result = await recordManualResponse(env.DB, {
+      feeling: "overwhelmed",
+      intensity: 8,
+      note: "the day I missed",
+      observedAt: "2026-08-15T10:00:00.000Z",
+      now,
+      id: "manual-backdated-1",
+    });
+
+    expect(result).toEqual({ ok: true, id: "manual-backdated-1" });
+    const row = await fetchManualRow("manual-backdated-1");
+    expect(row?.prompt_id).toBeNull();
+    expect(row?.feeling).toBe("overwhelmed");
+    expect(row?.intensity).toBe(8);
+    expect(row?.note).toBe("the day I missed");
+    expect(row?.observed_at).toBe("2026-08-15T10:00:00.000Z");
+    expect(row?.submitted_at).toBe(now.toISOString());
+  });
+
+  it("treats a timezone-less datetime as Europe/London", async () => {
+    const result = await recordManualResponse(env.DB, {
+      feeling: "calm",
+      intensity: 4,
+      observedAt: "2026-08-15T10:00",
+      now,
+      id: "manual-london-naive",
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchManualRow("manual-london-naive");
+    // 10:00 BST = 09:00 UTC
+    expect(row?.observed_at).toBe("2026-08-15T09:00:00.000Z");
+    expect(row?.submitted_at).toBe(now.toISOString());
+  });
+
+  it("accepts observed_at at the start of the 7-day London window", async () => {
+    const result = await recordManualResponse(env.DB, {
+      feeling: "tired",
+      intensity: 5,
+      observedAt: "2026-08-13T00:00",
+      now,
+      id: "manual-window-edge",
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchManualRow("manual-window-edge");
+    expect(row?.observed_at).toBe("2026-08-12T23:00:00.000Z");
+  });
+
+  it("rejects observed_at older than seven London calendar days", async () => {
+    const result = await recordManualResponse(env.DB, {
+      feeling: "tired",
+      intensity: 5,
+      observedAt: "2026-08-12T23:00",
+      now,
+    });
+    expect(result).toEqual({ ok: false, reason: "out_of_range" });
+    const count = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM checkin_response",
+    ).first<{ n: number }>();
+    expect(count?.n).toBe(0);
+  });
+
+  it("rejects a future observed_at", async () => {
+    const result = await recordManualResponse(env.DB, {
+      feeling: "hopeful",
+      intensity: 6,
+      observedAt: "2026-08-20T13:00:00.000Z",
+      now,
+    });
+    expect(result).toEqual({ ok: false, reason: "out_of_range" });
+  });
+
+  it("rejects a missing or unparseable observed_at", async () => {
+    const empty = await recordManualResponse(env.DB, {
+      feeling: "calm",
+      intensity: 3,
+      observedAt: "  ",
+      now,
+    });
+    const junk = await recordManualResponse(env.DB, {
+      feeling: "calm",
+      intensity: 3,
+      observedAt: "last Tuesday",
+      now,
+    });
+    expect(empty).toEqual({ ok: false, reason: "invalid" });
+    expect(junk).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  it("rejects an unknown feeling the same way as the prompted path", async () => {
+    const result = await recordManualResponse(env.DB, {
+      feeling: "xyzzy-not-a-feeling",
+      intensity: 5,
+      observedAt: "2026-08-15T10:00:00.000Z",
+      now,
+    });
+    expect(result).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  it("does not attach to or alter an existing prompt", async () => {
+    await insertPrompt(env.DB, makePrompt("prompt-untouched", "token-untouched"));
+
+    const result = await recordManualResponse(env.DB, {
+      feeling: "calm",
+      intensity: 3,
+      observedAt: "2026-08-15T10:00:00.000Z",
+      now,
+      id: "manual-untouched",
+    });
+
+    expect(result.ok).toBe(true);
+    const prompt = await env.DB.prepare("SELECT status FROM checkin_prompt WHERE id = ?")
+      .bind("prompt-untouched")
+      .first<{ status: string }>();
+    expect(prompt?.status).toBe("sent");
+    const linked = await env.DB.prepare(
+      "SELECT id FROM checkin_response WHERE prompt_id = ?",
+    )
+      .bind("prompt-untouched")
+      .first();
+    expect(linked).toBeNull();
   });
 });

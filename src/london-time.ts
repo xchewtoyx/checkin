@@ -38,6 +38,22 @@ export function getLondonParts(date: Date): LondonParts {
   };
 }
 
+/** Shift a `YYYY-MM-DD` calendar key by a whole number of days. */
+export function shiftDateKey(dateKey: string, days: number): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+export function londonDateTimeLocal(date: Date): string {
+  const parts = getLondonParts(date);
+  return `${parts.dateKey}T${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
+}
+
 export function londonInstant(
   dateKey: string,
   minutesOfDay: number,

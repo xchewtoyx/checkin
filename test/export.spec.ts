@@ -132,4 +132,26 @@ describe("export serialization", () => {
     expect(parsed[0].vocab_era).toBeNull();
     expect(parsed[0].feeling).toBe("anxious: before the meeting");
   });
+
+  it("serializes null prompt_id so manual rows stay distinguishable", () => {
+    const json = serializeResponses([
+      {
+        id: "manual-1",
+        prompt_id: null,
+        feeling: "calm",
+        intensity: 4,
+        note: null,
+        confidence: null,
+        vocab_era: null,
+        observed_at: "2026-08-13T10:00:00.000Z",
+        submitted_at: "2026-08-20T10:01:00.000Z",
+      },
+    ]);
+
+    const parsed = JSON.parse(json);
+    expect(parsed[0].id).toBe("manual-1");
+    expect(parsed[0].prompt_id).toBeNull();
+    expect(parsed[0].observed_at).toBe("2026-08-13T10:00:00.000Z");
+    expect(parsed[0].submitted_at).toBe("2026-08-20T10:01:00.000Z");
+  });
 });

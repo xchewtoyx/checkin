@@ -7,11 +7,11 @@ This file is **hand-maintained** and referenced from `.agentic/harness.yaml`.
 
 Cloudflare Worker (TypeScript) with D1 persistence.
 
-- `src/index.ts` — Worker entry (`/health`, `/c/:token`, `/api/responses`, `/report`, scheduled loop)
+- `src/index.ts` — Worker entry (`/health`, `/c/:token`, `/checkin`, `/api/responses`, `/report`, scheduled loop)
 - `src/scheduler.ts` — idempotent Europe/London scheduler
 - `src/weekly-summary.ts` — weekly Pushover mood summary (Sunday 20:00 London)
 - `src/answer-rate-alert.ts` — standing G1 answer-rate drift alert
-- `src/record-response.ts` — single write path for responses
+- `src/record-response.ts` — single write path for prompted and manual responses
 - `src/export.ts` — bearer-token JSON export; report Basic-or-bearer auth
 - `src/health-strip.ts` — answer-rate and extract-freshness health strip
 - `src/health-facts.ts` — D1 + R2 reads for the health strip
