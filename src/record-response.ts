@@ -1,6 +1,6 @@
 import { MANUAL_BACKDATE_DAYS, TOKEN_TTL_HOURS } from "./config";
 import { WHEEL_ERA } from "./feelings-wheel";
-import { getLondonParts, londonInstant, shiftDateKey } from "./london-time";
+import { getLondonParts, fromLondonWallClock, shiftDateKey } from "./london-time";
 import { log } from "./logger";
 import {
   Confidence,
@@ -146,7 +146,7 @@ export async function recordManualResponse(
     return rejectManualInvalid();
   }
 
-  const observedAt = parseObservedAt(input.observedAt, input.now);
+  const observedAt = parseObservedAt(input.observedAt);
   if (!observedAt) {
     return rejectManualInvalid();
   }
@@ -185,10 +185,10 @@ export function earliestManualObservedAt(
   days: number = MANUAL_BACKDATE_DAYS,
 ): Date {
   const today = getLondonParts(now).dateKey;
-  return londonInstant(shiftDateKey(today, -days), 0, now);
+  return fromLondonWallClock(shiftDateKey(today, -days), 0);
 }
 
-export function parseObservedAt(raw: string, now: Date): Date | null {
+export function parseObservedAt(raw: string): Date | null {
   const trimmed = raw.trim();
   if (!trimmed) {
     return null;
@@ -201,7 +201,7 @@ export function parseObservedAt(raw: string, now: Date): Date | null {
     if (hour > 23 || minute > 59) {
       return null;
     }
-    return londonInstant(naive[1], hour * 60 + minute, now);
+    return fromLondonWallClock(naive[1], hour * 60 + minute);
   }
 
   const ms = Date.parse(trimmed);

@@ -54,6 +54,31 @@ export function londonDateTimeLocal(date: Date): string {
   return `${parts.dateKey}T${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
 }
 
+/** Instant at which Europe/London shows `dateKey` + `minutesOfDay`. */
+export function fromLondonWallClock(dateKey: string, minutesOfDay: number): Date {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const hour = Math.floor(minutesOfDay / 60);
+  const minute = minutesOfDay % 60;
+  const target = Date.UTC(year, month - 1, day, hour, minute, 0);
+  let utc = target;
+  for (let i = 0; i < 3; i++) {
+    const parts = getLondonParts(new Date(utc));
+    const actual = Date.UTC(
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      parts.hour,
+      parts.minute,
+      0,
+    );
+    if (actual === target) {
+      return new Date(utc);
+    }
+    utc += target - actual;
+  }
+  return new Date(utc);
+}
+
 export function londonInstant(
   dateKey: string,
   minutesOfDay: number,

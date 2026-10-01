@@ -527,6 +527,21 @@ describe("recordManualResponse", () => {
     expect(row?.submitted_at).toBe(now.toISOString());
   });
 
+  it("treats an evening timezone-less datetime as Europe/London", async () => {
+    const result = await recordManualResponse(env.DB, {
+      feeling: "tired",
+      intensity: 5,
+      observedAt: "2026-08-15T23:00",
+      now,
+      id: "manual-london-evening",
+    });
+
+    expect(result.ok).toBe(true);
+    const row = await fetchManualRow("manual-london-evening");
+    // 23:00 BST = 22:00 UTC
+    expect(row?.observed_at).toBe("2026-08-15T22:00:00.000Z");
+  });
+
   it("accepts observed_at at the start of the 7-day London window", async () => {
     const result = await recordManualResponse(env.DB, {
       feeling: "tired",
@@ -545,7 +560,7 @@ describe("recordManualResponse", () => {
     const result = await recordManualResponse(env.DB, {
       feeling: "tired",
       intensity: 5,
-      observedAt: "2026-08-12T23:00",
+      observedAt: "2026-08-12T22:59:00.000Z",
       now,
     });
     expect(result).toEqual({ ok: false, reason: "out_of_range" });
