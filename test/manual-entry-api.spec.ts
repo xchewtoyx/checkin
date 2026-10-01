@@ -100,6 +100,47 @@ describe("GET/POST /checkin", () => {
     expect(row?.submitted_at).not.toBe(row?.observed_at);
   });
 
+  it("export readback attributes the entry to the observed day, not the submit day", async () => {
+    const observedAt = isoDaysAgo(2);
+    const posted = await SELF.fetch("https://example.com/checkin", {
+      method: "POST",
+      headers: { ...bearerHeaders(), "content-type": "application/json" },
+      body: JSON.stringify({
+        feeling: "overwhelmed",
+        intensity: 7,
+        observed_at: observedAt,
+      }),
+    });
+    expect(posted.status).toBe(200);
+
+    const observedDay = await SELF.fetch(
+      `https://example.com/api/responses?from=${encodeURIComponent(observedAt)}&to=${encodeURIComponent(observedAt)}`,
+      { headers: bearerHeaders() },
+    );
+    expect(observedDay.status).toBe(200);
+    const onObservedDay = (await observedDay.json()) as Array<{
+      id: string;
+      prompt_id: string | null;
+      feeling: string;
+      observed_at: string;
+      submitted_at: string;
+    }>;
+    expect(onObservedDay).toHaveLength(1);
+    expect(onObservedDay[0].prompt_id).toBeNull();
+    expect(onObservedDay[0].id.startsWith("manual-")).toBe(true);
+    expect(onObservedDay[0].feeling).toBe("overwhelmed");
+    expect(onObservedDay[0].observed_at).toBe(new Date(observedAt).toISOString());
+    expect(onObservedDay[0].submitted_at).not.toBe(onObservedDay[0].observed_at);
+
+    const afterObserved = new Date(Date.parse(observedAt) + 1000).toISOString();
+    const submitDay = await SELF.fetch(
+      `https://example.com/api/responses?from=${encodeURIComponent(afterObserved)}`,
+      { headers: bearerHeaders() },
+    );
+    const onSubmitDay = (await submitDay.json()) as Array<{ id: string }>;
+    expect(onSubmitDay.map((row) => row.id)).not.toContain(onObservedDay[0].id);
+  });
+
   it("rejects a POST without observed_at", async () => {
     const response = await SELF.fetch("https://example.com/checkin", {
       method: "POST",
