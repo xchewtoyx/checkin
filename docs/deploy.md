@@ -39,7 +39,7 @@ Create a Pushover application at [pushover.net](https://pushover.net/) and note:
 
 ### 4. Export bearer token
 
-Generate a long random token for `/api/responses` and `/report`:
+Generate a long random token for `/api/responses`, `/report`, and `/checkin`:
 
 ```bash
 openssl rand -hex 32
@@ -78,7 +78,7 @@ Re-run the deploy workflow (or push to `main`) if the first deploy ran before `B
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account identifier |
 | `PUSHOVER_TOKEN` | Pushover application API token (Worker runtime) |
 | `PUSHOVER_USER` | Pushover user key (Worker runtime) |
-| `EXPORT_BEARER_TOKEN` | Token for `GET /api/responses` (Bearer) and `GET /report` (Bearer or Basic password) |
+| `EXPORT_BEARER_TOKEN` | Token for `GET /api/responses` (Bearer), `GET /report` (Bearer or Basic password), and `GET/POST /checkin` (Bearer or Basic password) |
 
 ### Variables (Settings → Secrets and variables → Actions → Variables)
 
@@ -108,7 +108,7 @@ curl -H "Authorization: Bearer $EXPORT_BEARER_TOKEN" \
 
 curl -H "Authorization: Bearer $EXPORT_BEARER_TOKEN" \
   "$BASE_URL/report"
-# browser: open /report and use any username with EXPORT_BEARER_TOKEN as the password
+# browser: open /report or /checkin and use any username with EXPORT_BEARER_TOKEN as the password
 ```
 
 Confirm a Pushover notification arrives and a check-in completes end-to-end on your phone.

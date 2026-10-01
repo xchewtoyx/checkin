@@ -1,6 +1,7 @@
+import { MANUAL_BACKDATE_DAYS } from "./config";
 import { WHEEL, WHEEL_ERA } from "./feelings-wheel";
-import { getLondonParts } from "./london-time";
-import { isPromptUsable } from "./record-response";
+import { getLondonParts, londonDateTimeLocal } from "./london-time";
+import { earliestManualObservedAt, isPromptUsable } from "./record-response";
 import { PromptRow } from "./store";
 
 function escapeHtml(value: string): string {
@@ -227,6 +228,18 @@ const STYLE = `
     outline-offset: 2px;
   }
   .hidden { display: none !important; }
+  .when-row { display: flex; flex-direction: column; gap: 0.25rem; }
+  .when-row input[type="datetime-local"] {
+    font: inherit;
+    font-size: 1rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 44px;
+  }
+  .when-hint { color: var(--muted); font-size: 0.82rem; margin: 0; }
 `;
 
 function pageShell(body: string): string {
@@ -270,6 +283,45 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
   if (!isPromptUsable(prompt, now)) {
     return renderExpiredPage();
   }
+  return renderFeelingForm("prompt", now);
+}
+
+export function renderManualCheckinPage(now: Date): string {
+  return renderFeelingForm("manual", now);
+}
+
+function renderFeelingForm(mode: "prompt" | "manual", now: Date): string {
+  const manual = mode === "manual";
+  const earliest = earliestManualObservedAt(now);
+  const whenSection = manual
+    ? `    <section class="when-row" id="form-when">
+      <p class="group-label">when was this?</p>
+      <input id="observed-at" type="datetime-local" required
+        min="${escapeHtml(londonDateTimeLocal(earliest))}"
+        max="${escapeHtml(londonDateTimeLocal(now))}"
+        value="${escapeHtml(londonDateTimeLocal(now))}"
+        aria-label="Observed at (Europe/London)">
+      <p class="when-hint">Backdating is limited to the past ${MANUAL_BACKDATE_DAYS} London days. Submission time is recorded separately.</p>
+    </section>
+`
+    : "";
+  const declineButton = manual
+    ? ""
+    : `    <button type="button" class="decline" id="decline">Not now</button>
+`;
+  const skippedSection = manual
+    ? ""
+    : `    <section class="recorded" id="skipped">
+      <span class="word">Not now</span>
+      <p class="meta">This check-in is closed.</p>
+      <button class="change" id="skipped-change" type="button">Change</button>
+    </section>
+`;
+  const recordedChangeLabel = manual ? "Record another" : "Change answer";
+  const eyebrow = manual
+    ? `catch-up · last ${MANUAL_BACKDATE_DAYS} days`
+    : `check-in · ${escapeHtml(londonMoment(now))}`;
+  const heading = manual ? "How were you?" : "How are you?";
 
   const coreChips = WHEEL.map(
     (sector) =>
@@ -283,10 +335,10 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
 
   return pageShell(`  <main>
     <header>
-      <p class="eyebrow">check-in · ${escapeHtml(londonMoment(now))}</p>
-      <h1>How are you?</h1>
+      <p class="eyebrow">${eyebrow}</p>
+      <h1>${heading}</h1>
     </header>
-    <section id="row-0" class="ladder-row visible">
+${whenSection}    <section id="row-0" class="ladder-row visible">
       <p class="group-label">what feels closest?</p>
       <div class="chips" id="chips-0" role="group" aria-label="Core feelings">${coreChips}</div>
     </section>
@@ -314,22 +366,17 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
       </div>
       <div class="intensity" id="intensity" role="group" aria-label="Intensity from 1 to 10">${intensities}</div>
     </section>
-    <button type="button" class="decline" id="decline">Not now</button>
-    <section class="recorded" id="recorded">
+${declineButton}    <section class="recorded" id="recorded">
       <span class="word" id="recorded-word"></span>
       <p class="meta" id="recorded-meta"></p>
-      <button class="change" id="recorded-change" type="button">Change answer</button>
+      <button class="change" id="recorded-change" type="button">${recordedChangeLabel}</button>
     </section>
-    <section class="recorded" id="skipped">
-      <span class="word">Not now</span>
-      <p class="meta">This check-in is closed.</p>
-      <button class="change" id="skipped-change" type="button">Change</button>
-    </section>
-    <p id="status" role="status"></p>
+${skippedSection}    <p id="status" role="status"></p>
   </main>
   <script>
     var WHEEL = ${jsonForScript(WHEEL)};
     var WHEEL_ERA = ${jsonForScript(WHEEL_ERA)};
+    var KIND = ${jsonForScript(mode)};
     (function () {
       var depth = [null, null, null]; // selected word at [core, middle, outer]
       var hueByDepth = ["#888888", "#888888", "#888888"];
@@ -343,7 +390,9 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
       var statusEl = document.getElementById("status");
       var confidenceToggle = document.getElementById("confidence-toggle");
       var intensityButtons = intensityWrap.querySelectorAll("button");
-      var formIds = ["row-0", "row-1", "row-2", "form-note", "form-confidence", "form-intensity", "decline"];
+      var formIds = KIND === "manual"
+        ? ["row-0", "row-1", "row-2", "form-when", "form-note", "form-confidence", "form-intensity"]
+        : ["row-0", "row-1", "row-2", "form-note", "form-confidence", "form-intensity", "decline"];
 
       function coreSector(word) {
         for (var i = 0; i < WHEEL.length; i++) {
@@ -490,7 +539,8 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
           document.getElementById(formIds[i]).classList.toggle("hidden", open);
         }
         document.getElementById("recorded").classList.toggle("open", which === "recorded" && open);
-        document.getElementById("skipped").classList.toggle("open", which === "skipped" && open);
+        var skipped = document.getElementById("skipped");
+        if (skipped) skipped.classList.toggle("open", which === "skipped" && open);
       }
 
       function submit(intensity, feeling, submittedConfidence, hue) {
@@ -499,6 +549,10 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
         var note = document.getElementById("note").value;
         var body = { feeling: feeling, intensity: intensity, note: note, vocab_era: WHEEL_ERA };
         if (submittedConfidence) body.confidence = submittedConfidence;
+        if (KIND === "manual") {
+          var observed = document.getElementById("observed-at");
+          if (observed) body.observed_at = observed.value;
+        }
         fetch(window.location.pathname, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -546,13 +600,15 @@ export function renderCheckinPage(prompt: PromptRow, now: Date): string {
         });
       }
 
-      document.getElementById("decline").addEventListener("click", submitDecline);
+      var declineEl = document.getElementById("decline");
+      if (declineEl) declineEl.addEventListener("click", submitDecline);
 
       document.getElementById("recorded-change").addEventListener("click", function () {
         setRecorded(false);
       });
 
-      document.getElementById("skipped-change").addEventListener("click", function () {
+      var skippedChange = document.getElementById("skipped-change");
+      if (skippedChange) skippedChange.addEventListener("click", function () {
         setSkipped(false);
       });
     })();

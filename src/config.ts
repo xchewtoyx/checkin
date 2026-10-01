@@ -25,6 +25,13 @@ export const ANSWER_RATE_MIN_SENT_PROMPTS = 14;
 
 export const ANSWER_RATE_ALERT_ID = "answer_rate_g1";
 
+/**
+ * Manual catch-up entries may set `observed_at` on or after the start of
+ * this many London calendar days before today, and never in the future.
+ * Stated bound for CCP-679 — not open-ended recall.
+ */
+export const MANUAL_BACKDATE_DAYS = 7;
+
 export interface ScheduleWindow {
   index: number;
   startMinutes: number;

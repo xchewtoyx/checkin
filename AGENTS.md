@@ -41,6 +41,7 @@ Deploy is automated on push to `main` — see [docs/deploy.md](docs/deploy.md) f
 
 - `GET /health` — liveness
 - `GET/POST /c/:token` — check-in page and submission
+- `GET/POST /checkin` — manual catch-up entry with explicit `observed_at` (no `prompt_id`); Basic or bearer auth with `EXPORT_BEARER_TOKEN`. Backdating is limited to the past 7 London calendar days; `submitted_at` is always the real submission time.
 - `GET /api/responses?from=&to=` — bearer-token JSON export
 - `GET /report` — HTML health strip (answer rate + extract freshness); Basic or bearer auth with `EXPORT_BEARER_TOKEN`
 - Cron (15 min) — scheduler, Pushover notification, expiry sweep, weekly mood summary (Sunday 20:00 Europe/London), G1 answer-rate drift alert, analytics extract to R2 at 03:00 and 15:00 UTC

@@ -38,7 +38,7 @@ export type Confidence = "weak" | "strong";
 
 export interface ResponseRow {
   id: string;
-  prompt_id: string;
+  prompt_id: string | null;
   feeling: string;
   intensity: number;
   note: string | null;
