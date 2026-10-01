@@ -49,8 +49,8 @@ export type RecordManualResponseResult =
   | { ok: true; id: string }
   | { ok: false; reason: "invalid" | "out_of_range" };
 
-const NAIVE_OBSERVED_AT =
-  /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?$/;
+const NAIVE_OBSERVED_AT = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/;
+const HAS_EXPLICIT_OFFSET = /(?:Z|[+-]\d{2}:\d{2})$/i;
 
 async function resolveLivePrompt(
   db: D1Database,
@@ -131,7 +131,7 @@ export async function recordManualResponse(
   db: D1Database,
   input: RecordManualResponseInput,
 ): Promise<RecordManualResponseResult> {
-  if (input.intensity < 1 || input.intensity > 10) {
+  if (!Number.isInteger(input.intensity) || input.intensity < 1 || input.intensity > 10) {
     return rejectManualInvalid();
   }
 
@@ -185,7 +185,11 @@ export function earliestManualObservedAt(
   days: number = MANUAL_BACKDATE_DAYS,
 ): Date {
   const today = getLondonParts(now).dateKey;
-  return fromLondonWallClock(shiftDateKey(today, -days), 0);
+  const start = fromLondonWallClock(shiftDateKey(today, -days), 0);
+  if (!start) {
+    throw new Error(`London midnight missing for ${shiftDateKey(today, -days)}`);
+  }
+  return start;
 }
 
 export function parseObservedAt(raw: string): Date | null {
@@ -202,6 +206,12 @@ export function parseObservedAt(raw: string): Date | null {
       return null;
     }
     return fromLondonWallClock(naive[1], hour * 60 + minute);
+  }
+
+  // Offset-less datetimes other than YYYY-MM-DDTHH:mm are invalid: do not
+  // Date.parse them (that silently drops seconds) or treat them as UTC.
+  if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed) && !HAS_EXPLICIT_OFFSET.test(trimmed)) {
+    return null;
   }
 
   const ms = Date.parse(trimmed);

@@ -54,8 +54,8 @@ export function londonDateTimeLocal(date: Date): string {
   return `${parts.dateKey}T${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
 }
 
-/** Instant at which Europe/London shows `dateKey` + `minutesOfDay`. */
-export function fromLondonWallClock(dateKey: string, minutesOfDay: number): Date {
+/** Instant at which Europe/London shows `dateKey` + `minutesOfDay`, or null if that wall time does not exist (spring DST gap). */
+export function fromLondonWallClock(dateKey: string, minutesOfDay: number): Date | null {
   const [year, month, day] = dateKey.split("-").map(Number);
   const hour = Math.floor(minutesOfDay / 60);
   const minute = minutesOfDay % 60;
@@ -72,11 +72,24 @@ export function fromLondonWallClock(dateKey: string, minutesOfDay: number): Date
       0,
     );
     if (actual === target) {
-      return new Date(utc);
+      return roundTripOrNull(new Date(utc), dateKey, hour, minute);
     }
     utc += target - actual;
   }
-  return new Date(utc);
+  return roundTripOrNull(new Date(utc), dateKey, hour, minute);
+}
+
+function roundTripOrNull(
+  instant: Date,
+  dateKey: string,
+  hour: number,
+  minute: number,
+): Date | null {
+  const parts = getLondonParts(instant);
+  if (parts.dateKey !== dateKey || parts.hour !== hour || parts.minute !== minute) {
+    return null;
+  }
+  return instant;
 }
 
 export function londonInstant(

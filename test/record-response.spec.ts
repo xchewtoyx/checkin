@@ -597,6 +597,56 @@ describe("recordManualResponse", () => {
     expect(junk).toEqual({ ok: false, reason: "invalid" });
   });
 
+  it("rejects a timezone-less observed_at that includes seconds", async () => {
+    const result = await recordManualResponse(env.DB, {
+      feeling: "calm",
+      intensity: 3,
+      observedAt: "2026-08-15T10:00:59.900",
+      now,
+    });
+    expect(result).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  it("rejects a London wall time skipped by the spring DST transition", async () => {
+    const afterTransition = new Date("2026-04-01T12:00:00.000Z");
+    const gap = await recordManualResponse(env.DB, {
+      feeling: "tired",
+      intensity: 5,
+      observedAt: "2026-03-29T01:30",
+      now: afterTransition,
+    });
+    expect(gap).toEqual({ ok: false, reason: "invalid" });
+
+    const valid = await recordManualResponse(env.DB, {
+      feeling: "tired",
+      intensity: 5,
+      observedAt: "2026-03-29T02:30",
+      now: afterTransition,
+      id: "manual-dst-valid",
+    });
+    expect(valid.ok).toBe(true);
+    const row = await fetchManualRow("manual-dst-valid");
+    // 02:30 BST on the spring-forward morning = 01:30 UTC
+    expect(row?.observed_at).toBe("2026-03-29T01:30:00.000Z");
+  });
+
+  it("rejects a non-integer intensity", async () => {
+    const fractional = await recordManualResponse(env.DB, {
+      feeling: "calm",
+      intensity: 7.5,
+      observedAt: "2026-08-15T10:00:00.000Z",
+      now,
+    });
+    const nan = await recordManualResponse(env.DB, {
+      feeling: "calm",
+      intensity: Number.NaN,
+      observedAt: "2026-08-15T10:00:00.000Z",
+      now,
+    });
+    expect(fractional).toEqual({ ok: false, reason: "invalid" });
+    expect(nan).toEqual({ ok: false, reason: "invalid" });
+  });
+
   it("rejects an unknown feeling the same way as the prompted path", async () => {
     const result = await recordManualResponse(env.DB, {
       feeling: "xyzzy-not-a-feeling",
